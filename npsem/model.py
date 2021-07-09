@@ -53,13 +53,15 @@ def wrap(v_or_vs, wrap_with=frozenset):
 
 
 class CausalDiagram:
-    def __init__(self,
-                 vs: Optional[Iterable[str]],
-                 directed_edges: Optional[Iterable[Tuple[str, str]]] = frozenset(),
-                 bidirected_edges: Optional[Iterable[Tuple[str, str, str]]] = frozenset(),
-                 copy: 'CausalDiagram' = None,
-                 with_do: Optional[Set[str]] = None,
-                 with_induced: Optional[Set[str]] = None):
+    def __init__(
+        self,
+        vs: Optional[Iterable[str]],
+        directed_edges: Optional[Iterable[Tuple[str, str]]] = frozenset(),
+        bidirected_edges: Optional[Iterable[Tuple[str, str, str]]] = frozenset(),
+        copy: "CausalDiagram" = None,
+        with_do: Optional[Set[str]] = None,
+        with_induced: Optional[Set[str]] = None,
+    ):
         with_do = wrap(with_do)
         with_induced = wrap(with_induced)
         if copy is not None:
@@ -90,8 +92,13 @@ class CausalDiagram:
                 ancestors_are_removed = copy.de(removed) & self.V
                 descendants_are_removed = copy.an(removed) & self.V
 
-                self._pa = defaultdict(frozenset, {x: (copy._pa[x] - removed) if x in parents_are_removed else copy._pa[x] for x in self.V})
-                self._ch = defaultdict(frozenset, {x: (copy._ch[x] - removed) if x in children_are_removed else copy._ch[x] for x in self.V})
+                self._pa = defaultdict(
+                    frozenset, {x: (copy._pa[x] - removed) if x in parents_are_removed else copy._pa[x] for x in self.V}
+                )
+                self._ch = defaultdict(
+                    frozenset,
+                    {x: (copy._ch[x] - removed) if x in children_are_removed else copy._ch[x] for x in self.V},
+                )
                 self._an = dict_only(copy._an, self.V - ancestors_are_removed)
                 self._de = dict_only(copy._de, self.V - descendants_are_removed)
             else:
@@ -107,8 +114,7 @@ class CausalDiagram:
             bidirected_edges = list(bidirected_edges)
             self.V = frozenset(vs) | fzset_union(directed_edges) | fzset_union((x, y) for x, y, _ in bidirected_edges)
             self.U = frozenset(u for _, _, u in bidirected_edges)
-            self.confounded_dict = {u: frozenset({x, y}) for x, y, u in
-                                    bidirected_edges}
+            self.confounded_dict = {u: frozenset({x, y}) for x, y, u in bidirected_edges}
 
             self._ch = pairs2dict(directed_edges)
             self._pa = pairs2dict(directed_edges, backward=True)
@@ -144,7 +150,9 @@ class CausalDiagram:
                 return tuple(item) in self.edges
         if len(item) == 3:
             x, y, u = item
-            return self.is_confounded(x, y) and u in self.confounded_dict and self.confounded_dict[u] == frozenset({x, y})
+            return (
+                self.is_confounded(x, y) and u in self.confounded_dict and self.confounded_dict[u] == frozenset({x, y})
+            )
         return False
 
     def __lt__(self, other):
@@ -155,12 +163,20 @@ class CausalDiagram:
     def __le__(self, other):
         if not isinstance(other, CausalDiagram):
             return False
-        return self.V <= other.V and set(self.edges) <= set(other.edges) and set(self.confounded_dict.values()) <= set(other.confounded_dict.values())
+        return (
+            self.V <= other.V
+            and set(self.edges) <= set(other.edges)
+            and set(self.confounded_dict.values()) <= set(other.confounded_dict.values())
+        )
 
     def __ge__(self, other):
         if not isinstance(other, CausalDiagram):
             return False
-        return self.V >= other.V and set(self.edges) >= set(other.edges) and set(self.confounded_dict.values()) >= set(other.confounded_dict.values())
+        return (
+            self.V >= other.V
+            and set(self.edges) >= set(other.edges)
+            and set(self.confounded_dict.values()) >= set(other.confounded_dict.values())
+        )
 
     def __gt__(self, other):
         if not isinstance(other, CausalDiagram):
@@ -217,10 +233,10 @@ class CausalDiagram:
         self._de[v] = fzset_union(self.__de(child) for child in self._ch[v]) | self._ch[v]
         return self._de[v]
 
-    def do(self, v_or_vs) -> 'CausalDiagram':
+    def do(self, v_or_vs) -> "CausalDiagram":
         return self._do_(wrap(v_or_vs))
 
-    def _do_(self, v_or_vs) -> 'CausalDiagram':
+    def _do_(self, v_or_vs) -> "CausalDiagram":
         return CausalDiagram(None, None, None, self, wrap(v_or_vs))
 
     def has_edge(self, x, y) -> bool:
@@ -242,10 +258,10 @@ class CausalDiagram:
     def confounded_withs(self, v):
         return {next(iter(xy - {v})) for xy in self.confounded_dict.values() if v in xy}
 
-    def __getitem__(self, item) -> 'CausalDiagram':
+    def __getitem__(self, item) -> "CausalDiagram":
         return self.induced(item)
 
-    def induced(self, v_or_vs) -> 'CausalDiagram':
+    def induced(self, v_or_vs) -> "CausalDiagram":
         if set(v_or_vs) == self.V:
             return self
         return CausalDiagram(None, None, None, copy=self, with_induced=v_or_vs)
@@ -253,13 +269,15 @@ class CausalDiagram:
     @property
     def characteristic(self):
         if self.__characteristic is None:
-            self.__characteristic = (len(self.V),
-                                     len(self.edges),
-                                     len(self.confounded_dict),
-                                     sortup([(len(self.ch(v)), len(self.pa(v)), len(self.confounded_withs(v))) for v in self.V]))
+            self.__characteristic = (
+                len(self.V),
+                len(self.edges),
+                len(self.confounded_dict),
+                sortup([(len(self.ch(v)), len(self.pa(v)), len(self.confounded_withs(v))) for v in self.V]),
+            )
         return self.__characteristic
 
-    def edges_removed(self, edges_to_remove: Iterable[Sequence[str]]) -> 'CausalDiagram':
+    def edges_removed(self, edges_to_remove: Iterable[Sequence[str]]) -> "CausalDiagram":
         edges_to_remove = [tuple(edge) for edge in edges_to_remove]
 
         dir_edges = {edge for edge in edges_to_remove if len(edge) == 2}
@@ -267,7 +285,7 @@ class CausalDiagram:
         bidir_edges = frozenset((*sorted([x, y]), u) for x, y, u in bidir_edges)
         return CausalDiagram(self.V, set(self.edges) - dir_edges, self.confounded_to_3tuples() - bidir_edges)
 
-    def __sub__(self, v_or_vs_or_edges) -> 'CausalDiagram':
+    def __sub__(self, v_or_vs_or_edges) -> "CausalDiagram":
         if not v_or_vs_or_edges:
             return self
         if isinstance(v_or_vs_or_edges, str):
@@ -388,7 +406,7 @@ class CausalDiagram:
         while modified:
             modified = False
             for i, path1 in enumerate(bipaths):
-                for j, path2 in enumerate(bipaths[i + 1:], i + 1):
+                for j, path2 in enumerate(bipaths[i + 1 :], i + 1):
                     if path1[-1] == path2[0]:
                         newpath = path1 + path2[1:]
                         bipaths.pop(j)
@@ -416,13 +434,17 @@ class CausalDiagram:
         # a -> b -> c
         # e -> d -> c
         # == a->b->c<-d<-e
-        paths_string = [' ⟶ '.join(path) for path in paths]
-        bipaths_string = [' ⟷ '.join(path) for path in bipaths]
+        paths_string = [" ⟶ ".join(path) for path in paths]
+        bipaths_string = [" ⟷ ".join(path) for path in bipaths]
         alone = self.V - {x for path in paths for x in path} - {x for path in bipaths for x in path}
         if alone:
-            return f'[{",".join([str(x) for x in alone])} / ' + (', '.join(paths_string) + ' / ' + ', '.join(bipaths_string)) + ']'
+            return (
+                f'[{",".join([str(x) for x in alone])} / '
+                + (", ".join(paths_string) + " / " + ", ".join(bipaths_string))
+                + "]"
+            )
         else:
-            return f'[' + (', '.join(paths_string) + ' / ' + ', '.join(bipaths_string)) + ']'
+            return f"[" + (", ".join(paths_string) + " / " + ", ".join(bipaths_string)) + "]"
 
 
 class StructuralCausalModel:
@@ -493,7 +515,7 @@ def quick_causal_diagram(paths, bidirectedpaths=None):
     u_count = 0
     for path in bidirectedpaths:
         for x, y in zip(path, path[1:]):
-            bidir_edges.append((x, y, 'U' + str(u_count)))
+            bidir_edges.append((x, y, "U" + str(u_count)))
             u_count += 1
     return CausalDiagram(set(), dir_edges, bidir_edges)
 
@@ -529,7 +551,8 @@ def cd2qcd(G: CausalDiagram) -> str:
             nxG.remove_edge(x, y)
 
     if all(len(v) == 1 for path in paths for v in path) and all(len(v) == 1 for path in bipaths for v in path):
-        paths = [''.join(path) for path in paths]
-        bipaths = [''.join(path) for path in bipaths]
+        paths = ["".join(path) for path in paths]
+        bipaths = ["".join(path) for path in bipaths]
 
-    return f'qcd({paths}, {bipaths})'
+    return f"qcd({paths}, {bipaths})"
+

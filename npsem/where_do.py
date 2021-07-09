@@ -27,14 +27,13 @@ def subMISs(G: CausalDiagram, Y: str, Xs: FrozenSet[str], Ws: List[str]) -> Froz
     for i, W_i in enumerate(Ws):
         H = G.do({W_i})
         H = H[H.An(Y)]
-        out |= subMISs(H, Y, Xs | {W_i}, only(Ws[i + 1:], H.V))
+        out |= subMISs(H, Y, Xs | {W_i}, only(Ws[i + 1 :], H.V))
     return out
 
 
 def bruteforce_POMISs(G: CausalDiagram, Y: str) -> FrozenSet[FrozenSet[str]]:
     """ This computes a complete set of POMISs in a brute-force way """
-    return frozenset({frozenset(IB(G.do(Ws), Y))
-                      for Ws in combinations(list(G.V - {Y}))})
+    return frozenset({frozenset(IB(G.do(Ws), Y)) for Ws in combinations(list(G.V - {Y}))})
 
 
 def MUCT(G: CausalDiagram, Y: str) -> FrozenSet[str]:
@@ -82,7 +81,7 @@ def subPOMISs(G: CausalDiagram, Y, Ws: List, obs=None) -> Set[FrozenSet[str]]:
         new_obs = obs | set(Ws[:i])
         if not (Xs & new_obs):
             out.append(Xs)
-            new_Ws = only(Ws[i + 1:], Ts)
+            new_Ws = only(Ws[i + 1 :], Ts)
             if new_Ws:
                 out.extend(subPOMISs(G.do(Xs)[Ts | Xs], Y, new_Ws, new_obs))
     return {frozenset(_) for _ in out}

@@ -10,13 +10,13 @@ from npsem.scm_bandits import SCM_to_bandit_machine, arms_of, arm_types
 from npsem.utils import subseq, mkdirs
 
 
-def main_experiment(M: StructuralCausalModel, Y='Y', num_trial=200, horizon=10000, n_jobs=1):
+def main_experiment(M: StructuralCausalModel, Y="Y", num_trial=200, horizon=10000, n_jobs=1):
     results = dict()
     mu, arm_setting = SCM_to_bandit_machine(M)
     for arm_strategy in arm_types():
         arm_selected = arms_of(arm_strategy, arm_setting, M.G, Y)
         arm_corrector = np.vectorize(lambda x: arm_selected[x])
-        for bandit_algo in ['TS', 'UCB']:
+        for bandit_algo in ["TS", "UCB"]:
             arm_played, rewards = play_bandits(horizon, subseq(mu, arm_selected), bandit_algo, num_trial, n_jobs)
             results[(arm_strategy, bandit_algo)] = arm_corrector(arm_played), rewards
 
@@ -48,14 +48,14 @@ def compute_cumulative_regret(rewards: np.ndarray, mu_star: float) -> np.ndarray
 def load_result(directory):
     results = dict()
     for arm_strategy in arm_types():
-        for bandit_algo in ['TS', 'UCB']:
-            loaded = np.load(directory + f'/{arm_strategy}---{bandit_algo}.npz')
-            arms = loaded['a']
-            rewards = loaded['b']
+        for bandit_algo in ["TS", "UCB"]:
+            loaded = np.load(directory + f"/{arm_strategy}---{bandit_algo}.npz")
+            arms = loaded["a"]
+            rewards = loaded["b"]
             results[(arm_strategy, bandit_algo)] = (arms, rewards)
 
-    p_u = np.load(directory + '/p_u.npz')['a'][()]
-    mu = tuple(np.load(directory + '/mu.npz')['a'])
+    p_u = np.load(directory + "/p_u.npz")["a"][()]
+    mu = tuple(np.load(directory + "/mu.npz")["a"])
     return p_u, mu, results
 
 
@@ -63,18 +63,18 @@ def save_result(directory, p_u, mu, results):
     mkdirs(directory)
     for arm_strategy, bandit_algo in results:
         arms, rewards = results[(arm_strategy, bandit_algo)]
-        np.savez_compressed(directory + f'/{arm_strategy}---{bandit_algo}', a=arms, b=rewards)
-    np.savez_compressed(directory + f'/p_u', a=p_u)
-    np.savez_compressed(directory + f'/mu', a=mu)
+        np.savez_compressed(directory + f"/{arm_strategy}---{bandit_algo}", a=arms, b=rewards)
+    np.savez_compressed(directory + f"/p_u", a=p_u)
+    np.savez_compressed(directory + f"/mu", a=mu)
 
 
-def finished(directory, flag=None, message=''):
+def finished(directory, flag=None, message=""):
     mkdirs(directory)
-    filename = directory + '/finished.txt'
+    filename = directory + "/finished.txt"
     if flag is not None:
         if flag:
             Path(filename).touch(exist_ok=True)
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 print(str(message), file=f)
             return True
         else:
@@ -86,15 +86,19 @@ def finished(directory, flag=None, message=''):
 
 def main():
     num_simulation_repeats = 300
-    for dirname, (model, p_u), horizon in [('xyzwst', XYZWST_SCM(True, seed=0), 10000),
-                                           ('mark', simple_markovian_SCM(seed=0), 10000),
-                                           ('iv', IV_SCM(True, seed=0), 5000)]:
-        directory = f'bandit_results/{dirname}_0'
+    for dirname, (model, p_u), horizon in [
+        ("xyzwst", XYZWST_SCM(True, seed=0), 10000),
+        ("mark", simple_markovian_SCM(seed=0), 10000),
+        ("iv", IV_SCM(True, seed=0), 5000),
+    ]:
+        directory = f"bandit_results/{dirname}_0"
         if not finished(directory):
-            results, mu = main_experiment(model, 'Y', num_simulation_repeats, horizon, n_jobs=3 * multiprocessing.cpu_count() // 4)
+            results, mu = main_experiment(
+                model, "Y", num_simulation_repeats, horizon, n_jobs=3 * multiprocessing.cpu_count() // 4
+            )
             save_result(directory, p_u, mu, results)
             finished(directory, flag=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

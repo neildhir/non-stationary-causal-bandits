@@ -21,7 +21,9 @@ def KL(mu_x, mu_star, epsilon=1e-12):
         elif mu_x == 1:
             return np.log(1 / mu_star)
 
-    return mu_x * np.log((mu_x + epsilon) / (mu_star + epsilon)) + (1 - mu_x) * np.log((1 - mu_x + epsilon) / (1 - mu_star + epsilon))
+    return mu_x * np.log((mu_x + epsilon) / (mu_star + epsilon)) + (1 - mu_x) * np.log(
+        (1 - mu_x + epsilon) / (1 - mu_star + epsilon)
+    )
 
 
 def sup_KL(mu_ref, divergence, lower=None):
@@ -158,12 +160,16 @@ def thompson_sampling(T: int, mu, seed=None, prior_SF=None, **_kwargs):
 
 
 def play_bandits(T: int, mu, algo: str, repeat: int, n_jobs=1) -> Tuple[np.ndarray, np.ndarray]:
-    if algo == 'TS':
-        par_result = Parallel(n_jobs=n_jobs, verbose=100)(delayed(thompson_sampling)(T, mu, seed=trial) for trial in range(repeat))
-    elif algo == 'UCB':
+    if algo == "TS":
+        par_result = Parallel(n_jobs=n_jobs, verbose=100)(
+            delayed(thompson_sampling)(T, mu, seed=trial) for trial in range(repeat)
+        )
+    elif algo == "UCB":
         par_result = Parallel(n_jobs=n_jobs, verbose=100)(delayed(kl_UCB)(T, mu, seed=trial) for trial in range(repeat))
     else:
-        raise AssertionError(f'unknown algo: {algo}')
+        raise AssertionError(f"unknown algo: {algo}")
 
-    return (np.vstack(tuple(arms_selected for arms_selected, _ in par_result)),
-            np.vstack(tuple(rewards for _, rewards in par_result)))
+    return (
+        np.vstack(tuple(arms_selected for arms_selected, _ in par_result)),
+        np.vstack(tuple(rewards for _, rewards in par_result)),
+    )
