@@ -7,7 +7,9 @@ from npsem.utils import rand_bw, seeded
 def IV_CD(uname="U_XY"):
     """ Instrumental Variable Causal Diagram """
     X, Y, Z = "X", "Y", "Z"
-    return CausalDiagram(vs={X, Y, Z}, directed_edges=[(Z, X), (X, Y)], bidirected_edges=[(X, Y, uname)])
+    return CausalDiagram(
+        vs={X, Y, Z}, directed_edges=[(Z, X), (X, Y)], bidirected_edges=[(X, Y, uname)]
+    )  # This is a list of unobserved confounders
 
 
 def IV_SCM(devised=True, seed=None):

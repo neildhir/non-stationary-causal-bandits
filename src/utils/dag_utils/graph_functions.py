@@ -5,7 +5,16 @@ from networkx import nx_agraph
 import pygraphviz
 
 
-def make_graphical_model(start_time, stop_time, topology, nodes, target_node=None, verbose=False):
+def make_graphical_model(
+    start_time,
+    stop_time,
+    topology,
+    target_node,
+    node_information,
+    unobserved_confounder_info: None,
+    verbose=False,
+):
+
     """
     Generic temporal Bayesian network with two types of connections.
 
@@ -17,8 +26,6 @@ def make_graphical_model(start_time, stop_time, topology, nodes, target_node=Non
         Index of the last time-step
     topology: str, optional
         Choice of (spatial, i.e. per time-slice) topology
-    nodes: list
-        List containing all the nodes in the CGM
     target_node: str, optional
         If we are using a independent spatial topology then we need to specify the target node
     verbose : bool, optional
@@ -37,15 +44,17 @@ def make_graphical_model(start_time, stop_time, topology, nodes, target_node=Non
 
     assert start_time <= stop_time
     assert topology in ["dependent", "independent"]
-    assert nodes
+
+    # Get manipulative nodes
+    nodes = [key for key in node_information.keys() if node_information[key]["type"] != "confounder"]
 
     if topology == "independent":
         assert target_node is not None
         assert isinstance(target_node, str)
 
-    ## Spatial connections
+    ## Time-slice edges
 
-    spatial_edges = []
+    time_slice_edges = []
     ranking = []
     # Check if target node is in the list of nodes, and if so remove it
     if topology == "independent":
@@ -69,7 +78,7 @@ def make_graphical_model(start_time, stop_time, topology, nodes, target_node=Non
             space_idx = pair_count * [t]
             iters = [iter(edge_pairs), iter(space_idx)]
             inserts = list(chain(map(next, cycle(iters)), *iters))
-            spatial_edges.append(connections.format(*inserts))
+            time_slice_edges.append(connections.format(*inserts))
             ranking.append("{{ rank=same; {} }} ".format(" ".join([item + "_{}".format(t) for item in all_nodes])))
     elif topology == "dependent":
         # X_0 --> Z_0; Z_0 --> Y_0
@@ -77,15 +86,15 @@ def make_graphical_model(start_time, stop_time, topology, nodes, target_node=Non
             space_idx = pair_count * [t]
             iters = [iter(edge_pairs), iter(space_idx)]
             inserts = list(chain(map(next, cycle(iters)), *iters))
-            spatial_edges.append(connections.format(*inserts))
+            time_slice_edges.append(connections.format(*inserts))
             ranking.append("{{ rank=same; {} }} ".format(" ".join([item + "_{}".format(t) for item in nodes])))
     else:
-        raise ValueError("Not a valid spatial topology.")
+        raise ValueError("Not a valid time-slice topology.")
 
     ranking = "".join(ranking)
-    spatial_edges = "".join(spatial_edges)
+    time_slice_edges = "".join(time_slice_edges)
 
-    ## Temporal connections
+    ## Temporal edges
 
     temporal_edges = []
     if topology == "independent":
@@ -102,7 +111,12 @@ def make_graphical_model(start_time, stop_time, topology, nodes, target_node=Non
 
     temporal_edges = "".join(temporal_edges)
 
-    graph = "digraph {{ rankdir=LR; {} {} {} }}".format(spatial_edges, temporal_edges, ranking)
+    ## Confounding edges
+
+    if unobserved_confounder_info:
+        connections = len(unobserved_confounder_info) * "{}_{} <-- {}_{} --> {}_{}; "
+
+    graph = "digraph {{ rankdir=LR; {} {} {} }}".format(time_slice_edges, temporal_edges, ranking)
 
     if verbose:
         return Source(graph)
