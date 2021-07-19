@@ -132,7 +132,7 @@ def kl_UCB(T: int, mu, f=None, seed=None, faster=True, prior_SF=None, **_kwargs)
 
 
 def thompson_sampling(T: int, mu, seed=None, prior_SF=None, **_kwargs):
-    """ Bernoulli Thompson Sampling with known mu"""
+    """Bernoulli Thompson Sampling with known mu"""
     K_ = len(mu)
     S, F, theta = np.zeros((K_,)), np.zeros((K_,)), np.zeros((K_,))
     if prior_SF is not None:
@@ -144,6 +144,7 @@ def thompson_sampling(T: int, mu, seed=None, prior_SF=None, **_kwargs):
         random_numbers = np.random.rand(T)
 
         for t in range(T):
+            # Conjugate prior to Bernoulli random variable
             theta = [beta(S[i] + 1, F[i] + 1) for i in range(K_)]
             arm_x = rand_argmax(theta)
             reward_y = int(random_numbers[t] <= mu[arm_x])
@@ -152,8 +153,10 @@ def thompson_sampling(T: int, mu, seed=None, prior_SF=None, **_kwargs):
             rewards[t] = reward_y
 
             if reward_y == 1:
+                # Success
                 S[arm_x] += 1
             else:
+                # Failure
                 F[arm_x] += 1
 
     return arms_selected, rewards

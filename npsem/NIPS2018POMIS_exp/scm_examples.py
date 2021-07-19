@@ -7,7 +7,7 @@ from npsem.utils import rand_bw, seeded
 def IV_CD(uname="U_XY"):
     """ Instrumental Variable Causal Diagram """
     X, Y, Z = "X", "Y", "Z"
-    return CausalDiagram({X, Y, Z}, [(Z, X), (X, Y)], [(X, Y, uname)])
+    return CausalDiagram(vs={X, Y, Z}, directed_edges=[(Z, X), (X, Y)], bidirected_edges=[(X, Y, uname)])
 
 
 def IV_SCM(devised=True, seed=None):
@@ -155,7 +155,7 @@ def simple_markovian():
     return CausalDiagram({"X1", "X2", "Y", "Z1", "Z2"}, [(X1, Y), (X2, Y), (Z1, X1), (Z1, X2), (Z2, X1), (Z2, X2)])
 
 
-def simple_markovian_SCM(seed=None) -> [StructuralCausalModel, dict]:
+def simple_markovian_SCM(seed=None) -> StructuralCausalModel:
     with seeded(seed):
         G = simple_markovian()
         mu1 = {("U_" + v): rand_bw(0.1, 0.9, precision=2) for v in sorted(G.V)}
