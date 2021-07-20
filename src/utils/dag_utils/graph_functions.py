@@ -91,6 +91,8 @@ def make_graphical_model(
         confounders = []
         common_cause = 2 * "{}_{} -> {}_{} [style=dashed, color=red, constraint=false]; "
         for t in confounder_info.keys():
+            if isinstance(list, confounder_info[t]):
+                raise NotImplementedError("Cannot yet have multiple UCs.")
             l1 = ["U", confounder_info[t][0], "U", confounder_info[t][-1]]
             l2 = 4 * [t]
             inserts = [val for pair in zip(l1, l2) for val in pair]
@@ -133,3 +135,10 @@ def make_graphical_model(
 
 def make_networkx_object(graph):
     return nx_agraph.from_agraph(pygraphviz.AGraph(graph.source))
+
+
+def get_time_slice_sub_graphs(G, T: int) -> list:
+    sub_graphs = []
+    for g in [[node for node in G.nodes if node.split("_")[-1] == str(t)] for t in range(T)]:
+        sub_graphs.append(G.subgraph(g))
+    return sub_graphs
