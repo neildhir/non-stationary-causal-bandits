@@ -6,13 +6,7 @@ import pygraphviz
 
 
 def make_graphical_model(
-    start_time,
-    stop_time,
-    topology,
-    target_node,
-    node_information,
-    unobserved_confounder_info: None,
-    verbose=False,
+    start_time, stop_time, topology, target_node, node_information, unobserved_confounder_info: None, verbose=False,
 ):
 
     """
@@ -91,8 +85,22 @@ def make_graphical_model(
     else:
         raise ValueError("Not a valid time-slice topology.")
 
+    ## Confounding edges
+
+    if unobserved_confounder_info:
+        confounders = []
+        common_cause = "{}_{} <-- {}_{} --> {}_{}; "
+        for t in unobserved_confounder_info.keys():
+            l1 = [unobserved_confounder_info[t][0], "U", unobserved_confounder_info[t][-1]]
+            l2 = 3 * [t]
+            inserts = [val for pair in zip(l1, l2) for val in pair]
+            confounders.append(common_cause.format(*inserts))
+        # confounders = "".join(ucs)
+        time_slice_edges = "".join(time_slice_edges + confounders)
+    else:
+        time_slice_edges = "".join(time_slice_edges)
+
     ranking = "".join(ranking)
-    time_slice_edges = "".join(time_slice_edges)
 
     ## Temporal edges
 
@@ -110,11 +118,6 @@ def make_graphical_model(
         temporal_edges.append(connections.format(*inserts))
 
     temporal_edges = "".join(temporal_edges)
-
-    ## Confounding edges
-
-    if unobserved_confounder_info:
-        connections = len(unobserved_confounder_info) * "{}_{} <-- {}_{} --> {}_{}; "
 
     graph = "digraph {{ rankdir=LR; {} {} {} }}".format(time_slice_edges, temporal_edges, ranking)
 
