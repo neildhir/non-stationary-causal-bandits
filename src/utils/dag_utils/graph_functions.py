@@ -1,8 +1,9 @@
 from graphviz import Source
 from numpy import repeat
 from itertools import cycle, chain
-from networkx import nx_agraph
+from networkx import nx_agraph, set_node_attributes
 import pygraphviz
+from npsem.model import CausalDiagram
 
 
 def make_graphical_model(
@@ -91,7 +92,7 @@ def make_graphical_model(
         confounders = []
         common_cause = 2 * "{}_{} -> {}_{} [style=dashed, color=red, constraint=false]; "
         for t in confounder_info.keys():
-            if isinstance(list, confounder_info[t]):
+            if isinstance(confounder_info[t], list):
                 raise NotImplementedError("Cannot yet have multiple UCs.")
             l1 = ["U", confounder_info[t][0], "U", confounder_info[t][-1]]
             l2 = 4 * [t]
@@ -133,8 +134,16 @@ def make_graphical_model(
         return graph
 
 
-def make_networkx_object(graph):
-    return nx_agraph.from_agraph(pygraphviz.AGraph(graph.source))
+def make_networkx_object(graph, node_information=None):
+    G = nx_agraph.from_agraph(pygraphviz.AGraph(graph.source))
+    if node_information:
+        #  Sets what type of node each node is (manipulative, confounders, non-manipuatlive)
+        ninfo = [node_information[node.split("_")[0]] for node in G.nodes]
+        attrs = dict(zip(G.nodes, ninfo))
+        set_node_attributes(G, attrs)
+        return G
+    else:
+        return G
 
 
 def get_time_slice_sub_graphs(G, T: int) -> list:
@@ -142,3 +151,33 @@ def get_time_slice_sub_graphs(G, T: int) -> list:
     for g in [[node for node in G.nodes if node.split("_")[-1] == str(t)] for t in range(T)]:
         sub_graphs.append(G.subgraph(g))
     return sub_graphs
+
+
+def make_time_slice_causal_diagrams(sub_graphs: list, node_info: dict, confounder_info: dict) -> list:
+    T = len(sub_graphs)
+    sub_causal_diagrams = []
+
+    for t in range(T):
+        edges = [e[:-1] for e in sub_graphs[t].edges]
+        directed_edges = [edge for edge in edges if all(sub_graphs[1].nodes[v]["type"] != "confounder" for v in edge)]
+        directed_edges = [tuple([v.split("_")[0] for v in edge]) for edge in directed_edges]
+        variables = set(
+            [
+                node.split("_")[0]
+                for node in sub_graphs[0].nodes
+                if node_info[node.split("_")[0]]["type"] != "confounder"
+            ]
+        )
+
+        #  Set causal diagrams for this sub-graph
+        sub_causal_diagrams.append(
+            CausalDiagram(
+                variables=variables,
+                directed_edges=directed_edges,
+                # Unobserved confounders here
+                # TODO: currently only allow for ONE confounder per time-slice
+                bidirected_edges=[confounder_info[t] + ("U_{}".format(t),)],
+            )
+        )
+
+    return sub_causal_diagrams

@@ -55,7 +55,7 @@ def wrap(v_or_vs, wrap_with=frozenset):
 class CausalDiagram:
     def __init__(
         self,
-        vs: Optional[Iterable[str]],
+        variables: Optional[Iterable[str]],
         directed_edges: Optional[Iterable[Tuple[str, str]]] = frozenset(),
         bidirected_edges: Optional[Iterable[Tuple[str, str, str]]] = frozenset(),
         copy: "CausalDiagram" = None,
@@ -112,7 +112,9 @@ class CausalDiagram:
         else:
             directed_edges = list(directed_edges)
             bidirected_edges = list(bidirected_edges)
-            self.V = frozenset(vs) | fzset_union(directed_edges) | fzset_union((x, y) for x, y, _ in bidirected_edges)
+            self.V = (
+                frozenset(variables) | fzset_union(directed_edges) | fzset_union((x, y) for x, y, _ in bidirected_edges)
+            )
             self.U = frozenset(u for _, _, u in bidirected_edges)
             self.confounded_dict = {u: frozenset({x, y}) for x, y, u in bidirected_edges}
 
