@@ -466,16 +466,16 @@ class StructuralCausalModel:
             intervention = dict()
         new_condition = tuple(sorted([(x, y) for x, y in condition.items()]))
         new_intervention = tuple(sorted([(x, y) for x, y in intervention.items()]))
-        return self.query00(outcome, new_condition, new_intervention, verbose)
+        return self.query00(outcome = outcome, condition = new_condition, intervention = new_intervention, verbose = verbose)
 
     def query00(self, outcome: Tuple, condition: Tuple, intervention: Tuple, verbose=False) -> defaultdict:
+
         condition = dict(condition)
         intervention = dict(intervention)
-
         prob_outcome = defaultdict(lambda: 0)
 
         U = list(sorted(self.G.U | self.more_U))
-        D = self.D
+        D = self.D  # Intervention domain
         P_U = self.P_U
         V_ordered = self.G.causal_order()
         if verbose:

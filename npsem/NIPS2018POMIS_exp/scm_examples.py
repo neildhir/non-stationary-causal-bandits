@@ -18,6 +18,7 @@ def IV_SCM(devised=True, seed=None):
 
         # parametrization for U
         if devised:
+            # Reward distribution
             mu1 = {
                 "U_X": rand_bw(0.01, 0.2, precision=2),
                 "U_Y": rand_bw(0.01, 0.2, precision=2),
@@ -25,6 +26,7 @@ def IV_SCM(devised=True, seed=None):
                 "U_XY": rand_bw(0.4, 0.6, precision=2),
             }
         else:
+            # Reward distribution
             mu1 = {
                 "U_X": rand_bw(0.01, 0.99, precision=2),
                 "U_Y": rand_bw(0.01, 0.99, precision=2),

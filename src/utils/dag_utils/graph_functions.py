@@ -159,7 +159,7 @@ def make_time_slice_causal_diagrams(sub_graphs: list, node_info: dict, confounde
 
     for t in range(T):
         edges = [e[:-1] for e in sub_graphs[t].edges]
-        directed_edges = [edge for edge in edges if all(sub_graphs[1].nodes[v]["type"] != "confounder" for v in edge)]
+        directed_edges = [edge for edge in edges if all(sub_graphs[t].nodes[v]["type"] != "confounder" for v in edge)]
         directed_edges = [tuple([v.split("_")[0] for v in edge]) for edge in directed_edges]
         variables = set(
             [
@@ -169,15 +169,15 @@ def make_time_slice_causal_diagrams(sub_graphs: list, node_info: dict, confounde
             ]
         )
 
+        # Unobserved confounders here
+        # TODO: currently only allow for ONE confounder per time-slice
+        bi_edges = frozenset()
+        if t in confounder_info.keys():
+            bi_edges = [confounder_info[t] + ("U_{}".format(t),)]
+
         #  Set causal diagrams for this sub-graph
         sub_causal_diagrams.append(
-            CausalDiagram(
-                variables=variables,
-                directed_edges=directed_edges,
-                # Unobserved confounders here
-                # TODO: currently only allow for ONE confounder per time-slice
-                bidirected_edges=[confounder_info[t] + ("U_{}".format(t),)],
-            )
+            CausalDiagram(variables=variables, directed_edges=directed_edges, bidirected_edges=bi_edges)
         )
 
     return sub_causal_diagrams
