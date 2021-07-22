@@ -9,8 +9,7 @@ from npsem.bandits import play_bandits
 from npsem.scm_bandits import SCM_to_bandit_machine, arms_of
 from numpy import vectorize
 from tqdm import trange
-from utils.dag_utils.graph_functions import (get_time_slice_sub_graphs,
-                                             make_time_slice_causal_diagrams)
+from utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
 
 
 class NSSCMMAB:
@@ -20,6 +19,7 @@ class NSSCMMAB:
     - We do not have access to the SEM so we need to estimate it
     - Assume that the model is piece-wise stationary
     """
+
     def __init__(
         self,
         G,
@@ -35,7 +35,6 @@ class NSSCMMAB:
         self.all_target_variables = list(filter(lambda k: base_target_variable in k, G.nodes))
         sub_DAGs = get_time_slice_sub_graphs(G, T)
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, node_info, confounder_info)
-        self.SCMs =
 
         # TODO: need to make container for SCMs
         # TODO: prior for all edges in DBN
@@ -48,9 +47,16 @@ class NSSCMMAB:
         # Walk through the graph, from left to right, i.e. the temporal dimension
         for temporal_index in trange(self.total_timesteps, desc="Time index"):
 
+            # TODO: create SCM here to act upon
+            if temporal_index == 0:
+                # No previous actions have been taken so no dependence on the past
+                pass
+            else:
+                # Must take into account the optimal actions selected at t-1
+                pass
+
             # Get target for this time index
             target = self.all_target_variables[temporal_index]
-
             # Check that indices line up for this time-slice
             _, target_temporal_index = target.split("_")
             assert int(target_temporal_index) == temporal_index
@@ -63,5 +69,7 @@ class NSSCMMAB:
             # Pick action by playing MAB
             arm_played, rewards = play_bandits(horizon, subseq(mu, arm_selected), bandit_algo, num_trial, n_jobs)
 
-            # TODO: need to update statistics for next time-step through the transition functions
+            # TODO: need to update statistics for next time-step through the transition functions (though this probably already happens in SCM_to_bandit_machine)
+
+            # TODO: need to fix params in the SEM based on choices for this MAB
 

@@ -5,7 +5,7 @@ import os
 from contextlib import contextmanager
 from typing import Iterable, TypeVar, Generator, Tuple, Set, List, FrozenSet, AbstractSet
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def dict_or(d1: dict, d2: dict) -> dict:
@@ -49,6 +49,21 @@ def rand_argmax(xs):
 
 
 def with_default(x, dflt=None):
+    """
+    A very clever function. Use more.
+
+    Parameters
+    ----------
+    x : dict
+        Default domain
+    dflt : dict, optional
+        Another domain
+
+    Returns
+    -------
+    defaultdict
+        A ditionary which grows on the fly as it is assgned
+    """
     return x if x is not None else dflt
 
 

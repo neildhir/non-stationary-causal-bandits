@@ -454,9 +454,9 @@ class StructuralCausalModel:
         self.G = G
         self.F = F
         self.P_U = P_U
+        # This is a _very_ clever function
         self.D = with_default(D, defaultdict(lambda: (0, 1)))
         self.more_U = set() if more_U is None else set(more_U)
-
         self.query00 = functools.lru_cache(1024)(self.query00)
 
     def query(self, outcome: Tuple, condition: dict = None, intervention: dict = None, verbose=False) -> defaultdict:
@@ -466,14 +466,13 @@ class StructuralCausalModel:
             intervention = dict()
         new_condition = tuple(sorted([(x, y) for x, y in condition.items()]))
         new_intervention = tuple(sorted([(x, y) for x, y in intervention.items()]))
-        return self.query00(outcome = outcome, condition = new_condition, intervention = new_intervention, verbose = verbose)
+        return self.query00(outcome=outcome, condition=new_condition, intervention=new_intervention, verbose=verbose)
 
     def query00(self, outcome: Tuple, condition: Tuple, intervention: Tuple, verbose=False) -> defaultdict:
 
         condition = dict(condition)
         intervention = dict(intervention)
         prob_outcome = defaultdict(lambda: 0)
-
         U = list(sorted(self.G.U | self.more_U))
         D = self.D  # Intervention domain
         P_U = self.P_U
@@ -482,6 +481,7 @@ class StructuralCausalModel:
             print(f"ORDER: {V_ordered}")
         normalizer = 0
 
+        # XXX: the domain is grown dynamically here
         for u in product(*[D[U_i] for U_i in U]):  # d^|U|
             assigned = dict(zip(U, u))
             p_u = P_U(assigned)

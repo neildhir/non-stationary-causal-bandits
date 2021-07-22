@@ -43,7 +43,7 @@ def IV_SCM(devised=True, seed=None):
             G,
             F={
                 "Z": lambda v: v["U_Z"],
-                "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"],  #  ^ is the XOR operator
+                "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"],
                 "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"],
             },
             P_U=P_U,

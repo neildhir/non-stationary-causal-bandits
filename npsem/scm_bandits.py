@@ -14,6 +14,7 @@ def SCM_to_bandit_machine(M: StructuralCausalModel, target_variable="Y") -> Tupl
     arm_id = 0
     all_subsets = list(combinations(sorted(G.V - {target_variable})))
     for subset in all_subsets:
+        # Domain here is assigned on the fly
         for values in product(*[M.D[variable] for variable in subset]):
             #  E.g. Arm 1: do(X=1)
             arm_setting[arm_id] = dict(zip(subset, values))
