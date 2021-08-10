@@ -5,6 +5,7 @@
 # Date:   10 July 2021
 # =============================================
 
+from npsem.model import StructuralCausalModel
 from npsem.bandits import play_bandits
 from npsem.scm_bandits import SCM_to_bandit_machine, arms_of
 from numpy import vectorize
@@ -23,6 +24,7 @@ class NSSCMMAB:
     def __init__(
         self,
         G,
+        SEM: classmethod,
         node_info: dict,
         confounder_info: dict,
         base_target_variable: str,
@@ -34,7 +36,11 @@ class NSSCMMAB:
         # Extract all target variables from the causal graphical model
         self.all_target_variables = list(filter(lambda k: base_target_variable in k, G.nodes))
         sub_DAGs = get_time_slice_sub_graphs(G, T)
+        # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, node_info, confounder_info)
+        sem  = SEM()
+        self.static_sem = sem.static()
+        self.dynamic_sem = sem.dynamic()
 
         # TODO: need to make container for SCMs
         # TODO: prior for all edges in DBN
@@ -50,10 +56,10 @@ class NSSCMMAB:
             # TODO: create SCM here to act upon
             if temporal_index == 0:
                 # No previous actions have been taken so no dependence on the past
-                pass
+                M = StructuralCausalModel(G = self.causal_diagrams[temporal_index], F=self.static_sem, P_U=, D = , more_U=)
             else:
                 # Must take into account the optimal actions selected at t-1
-                pass
+                M = StructuralCausalModel(G = self.causal_diagrams[temporal_index], F=self.dynamic_sem(clamped = ), P_U=, D = , more_U=)
 
             # Get target for this time index
             target = self.all_target_variables[temporal_index]

@@ -1,6 +1,7 @@
 from collections import OrderedDict
-from os import stat
-from networkx.algorithms.similarity import optimize_graph_edit_distance
+
+# from os import stat
+# from networkx.algorithms.similarity import optimize_graph_edit_distance
 import numpy as np
 
 
@@ -32,8 +33,7 @@ class DynamicIVCD:
     @staticmethod
     def static() -> OrderedDict:
         """
-        time index: t
-        sample: s
+        variable: v
         noise: e
         """
 
@@ -41,44 +41,41 @@ class DynamicIVCD:
         # TODO: need to write a method which estimates this (i.e. in real life we do not have access to the SEM)
 
         return {
-            "Z": lambda t, s, e: s["U_Z"][t] ^ e if e else s["U_Z"][t],
-            "X": lambda t, s, e: s["U_X"][t] ^ s["U_XY"][t] ^ s["Z"][t] ^ e
-            if e
-            else s["U_X"][t] ^ s["U_XY"][t] ^ s["Z"][t],
+            "Z": lambda v, e: v["U_Z"] ^ e if e else v["U_Z"],
+            "X": lambda v, e: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ e if e else v["U_X"] ^ v["U_XY"] ^ v["Z"],
             "Y": (
-                lambda t, s, e: 1 ^ s["U_Y"][t] ^ s["U_XY"][t] ^ s["X"][t] ^ e
-                if e  #  if e is passed as None then the else statement is invoked
-                else 1 ^ s["U_Y"][t] ^ s["U_XY"][t] ^ s["X"][t]
+                lambda v, e: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ e
+                if e  #  if e iv pavved av None then the elve vtatement iv invoked
+                else 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"]
             ),
         }
 
     @staticmethod
-    def dynamic(assigned: dict) -> dict:
+    def dynamic(clamped: dict) -> dict:
         """
         Parameters
         ----------
-        assigned : dict
+        clamped: dict
             Contains the value of the assigned variables in the global SCM, from the previous time-step (previous MAB problem)
-
-        variable: V
+        variable: v
         noise: e
         """
         return {
-            # z_{-1} --> Z <-- U_Z
-            "Z": lambda V, e: V["U_Z"] ^ assigned["Z"] ^ e if e else V["U_Z"] ^ assigned["Z"],
-            # x_{-1} --> X <-- {U_X, U_XY, Z}
+            # z_{t-1} --> Z <-- U_Z
+            "Z": lambda v, e: v["U_Z"] ^ clamped["Z"] ^ e if e else v["U_Z"] ^ clamped["Z"],
+            # x_{t-1} --> X <-- {U_X, U_XY, Z}
             "X": (
                 # Clean
-                lambda V, e: V["U_X"] ^ V["U_XY"] ^ V["Z"] ^ assigned["X"] ^ e
+                lambda v, e: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"] ^ e
                 if e
                 # Noisy
-                else V["U_X"] ^ V["U_XY"] ^ V["Z"] ^ assigned["X"]
+                else v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"]
             ),
-            # y_{-1} --> Y <-- {U_Y, U_XY, X}
+            # y_{t-1} --> Y <-- {U_Y, U_XY, X}
             "Y": (
-                lambda V, e: 1 ^ V["U_Y"] ^ V["U_XY"] ^ V["X"] ^ assigned["Y"] ^ e
+                lambda v, e: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ clamped["Y"] ^ e
                 if e
-                else 1 ^ V["U_Y"] ^ V["U_XY"] ^ V["X"] ^ assigned["Y"]
+                else 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ clamped["Y"]
             ),
         }
 
