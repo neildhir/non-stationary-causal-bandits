@@ -11,6 +11,8 @@ class DynamicIVCD:
 
     Adapted from from task 3 (experimental section): Structural Causal Bandits: Where to Intervene?
 
+    Note that the dictionary returned respects the causal ordering of each time-slice in the graph.
+
     Notes
     -----
     1. ^ is the XOR operator used to model binary interactions
@@ -21,6 +23,7 @@ class DynamicIVCD:
 
     def __init__(self):
         """
+        Not currently used. Will be used if we transition to a MDP/POMDP scenario and have requirements for transition functions.
         """
         transmatZ = {0: [0.5, 0.5], 1: [0.35, 0.65]}
         transmatX = {0: [0.1, 0.9], 1: [0.8, 0.2]}
@@ -41,12 +44,14 @@ class DynamicIVCD:
         # TODO: need to write a method which estimates this (i.e. in real life we do not have access to the SEM)
 
         return {
-            "Z": lambda v, e: v["U_Z"] ^ e if e else v["U_Z"],
-            "X": lambda v, e: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ e if e else v["U_X"] ^ v["U_XY"] ^ v["Z"],
+            "Z": lambda u, v, e, t: u["U_Z"][t] ^ e if e else u["U_Z"][t],
+            "X": lambda u, v, e, t: u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t] ^ e
+            if e
+            else u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t],
             "Y": (
-                lambda v, e: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ e
+                lambda u, v, e, t: 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t] ^ e
                 if e  #  if e iv pavved av None then the elve vtatement iv invoked
-                else 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"]
+                else 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t]
             ),
         }
 
@@ -59,23 +64,27 @@ class DynamicIVCD:
             Contains the value of the assigned variables in the global SCM, from the previous time-step (previous MAB problem)
         variable: v
         noise: e
+
+        Note
+        ----
+        Small-caps in the comment means the clamped variable i.e. 'clamped["X"][t] == x_{t-1}' i.e. the X node at t-1 is clamped to value x_{t-1}.
         """
         return {
             # z_{t-1} --> Z <-- U_Z
-            "Z": lambda v, e: v["U_Z"] ^ clamped["Z"] ^ e if e else v["U_Z"] ^ clamped["Z"],
+            "Z": lambda u, v, e, t: u["U_Z"][t] ^ v["Z"][t - 1] ^ e if e else u["U_Z"][t] ^ v["Z"][t - 1],
             # x_{t-1} --> X <-- {U_X, U_XY, Z}
             "X": (
                 # Clean
-                lambda v, e: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"] ^ e
+                lambda u, v, e, t: u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t] ^ v["X"][t - 1] ^ e
                 if e
                 # Noisy
-                else v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"]
+                else u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t] ^ v["X"][t - 1]
             ),
             # y_{t-1} --> Y <-- {U_Y, U_XY, X}
             "Y": (
-                lambda v, e: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ clamped["Y"] ^ e
+                lambda u, v, e, t: 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t] ^ v["Y"][t - 1] ^ e
                 if e
-                else 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ clamped["Y"]
+                else 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t] ^ v["Y"][t - 1]
             ),
         }
 

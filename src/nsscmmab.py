@@ -5,7 +5,7 @@
 # Date:   10 July 2021
 # =============================================
 
-from npsem.model import StructuralCausalModel
+from npsem.model import StructuralCausalModel, default_P_U
 from npsem.bandits import play_bandits
 from npsem.scm_bandits import SCM_to_bandit_machine, arms_of
 from numpy import vectorize
@@ -25,6 +25,8 @@ class NSSCMMAB:
         self,
         G,
         SEM: classmethod,
+        mu1: dict,  # Reward distribution
+        domains: dict,
         node_info: dict,
         confounder_info: dict,
         base_target_variable: str,
@@ -38,9 +40,13 @@ class NSSCMMAB:
         sub_DAGs = get_time_slice_sub_graphs(G, T)
         # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, node_info, confounder_info)
-        sem  = SEM()
+        sem = SEM()
         self.static_sem = sem.static()
         self.dynamic_sem = sem.dynamic()
+        self.P_U = default_P_U(mu1)
+        self.domains = domains
+        # Remains the same for all time-slices
+        self.more_U = ["U_{}".format(v) for v in self.causal_diagrams[0].V]
 
         # TODO: need to make container for SCMs
         # TODO: prior for all edges in DBN
@@ -53,19 +59,21 @@ class NSSCMMAB:
         # Walk through the graph, from left to right, i.e. the temporal dimension
         for temporal_index in trange(self.total_timesteps, desc="Time index"):
 
-            # TODO: create SCM here to act upon
-            if temporal_index == 0:
-                # No previous actions have been taken so no dependence on the past
-                M = StructuralCausalModel(G = self.causal_diagrams[temporal_index], F=self.static_sem, P_U=, D = , more_U=)
-            else:
-                # Must take into account the optimal actions selected at t-1
-                M = StructuralCausalModel(G = self.causal_diagrams[temporal_index], F=self.dynamic_sem(clamped = ), P_U=, D = , more_U=)
-
             # Get target for this time index
             target = self.all_target_variables[temporal_index]
             # Check that indices line up for this time-slice
             _, target_temporal_index = target.split("_")
             assert int(target_temporal_index) == temporal_index
+
+            # Create SCM, must take into account the optimal actions selected at t-1 if t > 0
+            M = StructuralCausalModel(
+                G=self.causal_diagrams[temporal_index],
+                # TODO: need to set the clamped value if it exists
+                F=self.static_sem if temporal_index == 0 else self.dynamic_sem(clamped=None),
+                P_U=self.P_U,
+                D=self.domains,
+                more_U=self.more_U,
+            )
 
             # Play this, piece-wise stationary bandit
             mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index])
