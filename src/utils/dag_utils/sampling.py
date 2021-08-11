@@ -3,7 +3,7 @@ import numpy as np
 
 
 def sample_sem(
-    sem, timesteps: int, sample_size: int, epsilon=None, seed=None,
+    sem, exo_vars: dict, timesteps: int, sample_size: int, epsilon=None, seed=None,
 ):
     """
     Draw sample(s) from given structural equation model.
@@ -14,7 +14,7 @@ def sample_sem(
         Sequential sample(s) from SEM.
     """
 
-    SEM = sem(sample_size=sample_size)
+    SEM = sem()
     static = SEM.static()
     dynamic = SEM.dynamic()
 
@@ -25,20 +25,22 @@ def sample_sem(
 
     if epsilon:
         assert epsilon.shape == (sample_size, timesteps)
+        assert all(exo_vars[u].shape == exo_vars[0].shape for u in exo_vars.keys())
+        assert exo_vars[0].shape == epsilon.shape
 
     # Pre-allocate the sample container
-    s = OrderedDict([(k, timesteps * [None]) for k in static.keys()])
+    sem_sample = OrderedDict([(k, timesteps * [None]) for k in static.keys()])
 
     for t in range(timesteps):
         model = static if t == 0 else dynamic
         for var, function in model.items():
-            s[var][t] = function(s, t, epsilon)
+            sem_sample[var][t] = function(exo_vars, sem_sample, epsilon, t)
 
     #  Convert each key from a list to 2D array
-    for key in s.keys():
-        if len(s[key][0].shape) == 1:
-            s[key] = np.array(s[key]).T
+    for key in sem_sample.keys():
+        if len(sem_sample[key][0].shape) == 1:
+            sem_sample[key] = np.array(sem_sample[key]).T
         else:
-            s[key] = np.hstack(s[key])
+            sem_sample[key] = np.hstack(sem_sample[key])
 
-    return s
+    return sem_sample

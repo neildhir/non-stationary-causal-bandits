@@ -1,7 +1,3 @@
-from collections import OrderedDict
-
-# from os import stat
-# from networkx.algorithms.similarity import optimize_graph_edit_distance
 import numpy as np
 
 
@@ -34,57 +30,57 @@ class DynamicIVCD:
         self.trans_funcY = np.vectorize(lambda state: np.random.choice(2, 1, p=transmatY[state]))
 
     @staticmethod
-    def static() -> OrderedDict:
+    def static() -> dict:
         """
-        variable: v
+        Parameters
+        ----------
+        exogeneous variables: u
+        endogenous variable: v
         noise: e
+        time index: t
         """
 
-        # TODO: add sample size so here so we can parallelise the sampler
         # TODO: need to write a method which estimates this (i.e. in real life we do not have access to the SEM)
-
         return {
-            "Z": lambda u, v, e, t: u["U_Z"][t] ^ e if e else u["U_Z"][t],
-            "X": lambda u, v, e, t: u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t] ^ e
-            if e
-            else u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t],
+            "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ e[:, t] if e is not None else u["U_Z"][:, t],
+            "X": lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ e[:, t]
+            if e is not None
+            else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t],
             "Y": (
-                lambda u, v, e, t: 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t] ^ e
-                if e  #  if e iv pavved av None then the elve vtatement iv invoked
-                else 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t]
+                lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ e[:, t]
+                if e is not None
+                else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t]
             ),
         }
 
     @staticmethod
-    def dynamic(clamped: dict) -> dict:
+    def dynamic() -> dict:
         """
         Parameters
         ----------
-        clamped: dict
-            Contains the value of the assigned variables in the global SCM, from the previous time-step (previous MAB problem)
-        variable: v
-        noise: e
-
-        Note
-        ----
-        Small-caps in the comment means the clamped variable i.e. 'clamped["X"][t] == x_{t-1}' i.e. the X node at t-1 is clamped to value x_{t-1}.
+        exogeneous variables: u (type: dict containing np.ndarrays)
+        endogenous variable: v (type: dict containing np.ndarraysa -- one per var)
+        noise: e (type: ndarray)
+        time index: t (type: int)
         """
         return {
             # z_{t-1} --> Z <-- U_Z
-            "Z": lambda u, v, e, t: u["U_Z"][t] ^ v["Z"][t - 1] ^ e if e else u["U_Z"][t] ^ v["Z"][t - 1],
+            "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ v["Z"][:, t - 1] ^ e[:, t]
+            if e is not None
+            else u["U_Z"][:, t] ^ v["Z"][:, t - 1],
             # x_{t-1} --> X <-- {U_X, U_XY, Z}
             "X": (
+                # Noisy/corrupted
+                lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1] ^ e[:, t]
+                if e is not None
                 # Clean
-                lambda u, v, e, t: u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t] ^ v["X"][t - 1] ^ e
-                if e
-                # Noisy
-                else u["U_X"][t] ^ u["U_XY"][t] ^ v["Z"][t] ^ v["X"][t - 1]
+                else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1]
             ),
             # y_{t-1} --> Y <-- {U_Y, U_XY, X}
             "Y": (
-                lambda u, v, e, t: 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t] ^ v["Y"][t - 1] ^ e
-                if e
-                else 1 ^ u["U_Y"][t] ^ u["U_XY"][t] ^ v["X"][t] ^ v["Y"][t - 1]
+                lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1] ^ e[:, t]
+                if e is not None
+                else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1]
             ),
         }
 
