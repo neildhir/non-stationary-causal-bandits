@@ -29,18 +29,11 @@ def sample_sem(
         assert exo_vars[0].shape == epsilon.shape
 
     # Pre-allocate the sample container
-    sem_sample = OrderedDict([(k, timesteps * [None]) for k in static.keys()])
+    sem_samples = {k: np.empty((sample_size, timesteps), dtype="int") for k in static.keys()}
 
     for t in range(timesteps):
         model = static if t == 0 else dynamic
         for var, function in model.items():
-            sem_sample[var][t] = function(exo_vars, sem_sample, epsilon, t)
+            sem_samples[var][:, t] = function(exo_vars, sem_samples, epsilon, t)
 
-    #  Convert each key from a list to 2D array
-    for key in sem_sample.keys():
-        if len(sem_sample[key][0].shape) == 1:
-            sem_sample[key] = np.array(sem_sample[key]).T
-        else:
-            sem_sample[key] = np.hstack(sem_sample[key])
-
-    return sem_sample
+    return sem_samples
