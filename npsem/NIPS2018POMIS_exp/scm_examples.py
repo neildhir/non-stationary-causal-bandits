@@ -34,7 +34,7 @@ def IV_SCM(devised=True, seed=None):
                 "U_XY": rand_bw(0.01, 0.99, precision=2),
             }
 
-        P_U = default_P_U(mu1)
+        P_U = default_P_U(mu1)  # Allows us to pass a argument with a probability
 
         domains = defaultdict(lambda: (0, 1))
 

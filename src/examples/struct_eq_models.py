@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 
 
 class DynamicIVCD:
@@ -41,17 +42,19 @@ class DynamicIVCD:
         """
 
         # TODO: need to write a method which estimates this (i.e. in real life we do not have access to the SEM)
-        return {
-            "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ e[:, t] if e is not None else u["U_Z"][:, t],
-            "X": lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ e[:, t]
-            if e is not None
-            else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t],
-            "Y": (
-                lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ e[:, t]
+        return OrderedDict(
+            {
+                "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ e[:, t] if e is not None else u["U_Z"][:, t],
+                "X": lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ e[:, t]
                 if e is not None
-                else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t]
-            ),
-        }
+                else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t],
+                "Y": (
+                    lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ e[:, t]
+                    if e is not None
+                    else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t]
+                ),
+            }
+        )
 
     @staticmethod
     def dynamic() -> dict:
@@ -63,24 +66,26 @@ class DynamicIVCD:
         noise: e (type: ndarray)
         time index: t (type: int)
         """
-        return {
-            # z_{t-1} --> Z <-- U_Z
-            "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ v["Z"][:, t - 1] ^ e[:, t]
-            if e is not None
-            else u["U_Z"][:, t] ^ v["Z"][:, t - 1],
-            # x_{t-1} --> X <-- {U_X, U_XY, Z}
-            "X": (
-                # Noisy/corrupted
-                lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1] ^ e[:, t]
+        return OrderedDict(
+            {
+                # z_{t-1} --> Z <-- U_Z
+                "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ v["Z"][:, t - 1] ^ e[:, t]
                 if e is not None
-                # Clean
-                else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1]
-            ),
-            # y_{t-1} --> Y <-- {U_Y, U_XY, X}
-            "Y": (
-                lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1] ^ e[:, t]
-                if e is not None
-                else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1]
-            ),
-        }
+                else u["U_Z"][:, t] ^ v["Z"][:, t - 1],
+                # x_{t-1} --> X <-- {U_X, U_XY, Z}
+                "X": (
+                    # Noisy/corrupted
+                    lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1] ^ e[:, t]
+                    if e is not None
+                    # Clean
+                    else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1]
+                ),
+                # y_{t-1} --> Y <-- {U_Y, U_XY, X}
+                "Y": (
+                    lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1] ^ e[:, t]
+                    if e is not None
+                    else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1]
+                ),
+            }
+        )
 

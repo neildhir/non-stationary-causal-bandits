@@ -308,7 +308,7 @@ class CausalDiagram:
 
     def __add__(self, edges):
         if isinstance(edges, CausalDiagram):
-            return merge_two_cds(self, edges)
+            return merge_two_causal_diagrams(self, edges)
 
         directed_edges = {edge for edge in edges if len(edge) == 2}
         bidirected_edges = {edge for edge in edges if len(edge) == 3}
@@ -382,7 +382,7 @@ class CausalDiagram:
         return self.__h
 
     def __repr__(self):
-        return cd2qcd(self)
+        return causal_diagram_to_quick_causal_diagram(self)
 
     def __str__(self):
         nxG = nx.DiGraph(sortup(self.edges))
@@ -473,7 +473,7 @@ class StructuralCausalModel:
         condition = dict(condition)
         intervention = dict(intervention)
         prob_outcome = defaultdict(lambda: 0)
-        U = list(sorted(self.G.U | self.more_U))
+        U = list(sorted(self.G.U | self.more_U))  # This | is the set union operator.
         D = self.D  # Intervention domain
         P_U = self.P_U
         V_ordered = self.G.causal_order()
@@ -487,7 +487,7 @@ class StructuralCausalModel:
             p_u = P_U(assigned)
             if p_u == 0:
                 continue
-            # evaluate values
+            # evaluate values -- note that self.F has the causal order as well
             for V_i in V_ordered:
                 if V_i in intervention:
                     assigned[V_i] = intervention[V_i]
@@ -506,7 +506,7 @@ class StructuralCausalModel:
             return defaultdict(lambda: np.nan)  # nan or 0?
 
 
-def quick_causal_diagram(paths, bidirectedpaths=None):
+def quick_causal_diagram(paths, bidirectedpaths=None) -> CausalDiagram:
     if bidirectedpaths is None:
         bidirectedpaths = []
     dir_edges = []
@@ -525,14 +525,14 @@ def quick_causal_diagram(paths, bidirectedpaths=None):
 qcd = quick_causal_diagram
 
 
-def merge_two_cds(g1: CausalDiagram, g2: CausalDiagram) -> CausalDiagram:
+def merge_two_causal_diagrams(g1: CausalDiagram, g2: CausalDiagram) -> CausalDiagram:
     VV = g1.V | g2.V
     EE = set(g1.edges) | set(g2.edges)
     VWU = set(g1.confounded_to_3tuples()) | set(g2.confounded_to_3tuples())
     return CausalDiagram(VV, EE, VWU)
 
 
-def cd2qcd(G: CausalDiagram) -> str:
+def causal_diagram_to_quick_causal_diagram(G: CausalDiagram) -> str:
     nxG = nx.DiGraph(sortup(G.edges))
     paths = []
     while nxG.edges:

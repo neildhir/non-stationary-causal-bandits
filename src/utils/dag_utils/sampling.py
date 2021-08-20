@@ -1,5 +1,5 @@
-from collections import OrderedDict
 import numpy as np
+from collections import OrderedDict
 
 
 def sample_sem(
@@ -29,7 +29,7 @@ def sample_sem(
         assert exo_vars[0].shape == epsilon.shape
 
     # Pre-allocate the sample container
-    sem_samples = {k: np.empty((sample_size, timesteps), dtype="int") for k in static.keys()}
+    sem_samples = OrderedDict({k: np.empty((sample_size, timesteps), dtype="int") for k in static.keys()})
 
     for t in range(timesteps):
         model = static if t == 0 else dynamic

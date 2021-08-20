@@ -7,7 +7,7 @@
 
 from npsem.model import StructuralCausalModel, default_P_U
 from npsem.bandits import play_bandits
-from npsem.scm_bandits import SCM_to_bandit_machine, arms_of
+from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of
 from numpy import vectorize
 from tqdm import trange
 from utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
@@ -46,12 +46,14 @@ class NSSCMMAB:
         self.P_U = default_P_U(mu1)
         self.domains = domains
         # Remains the same for all time-slices
-        self.more_U = ["U_{}".format(v) for v in self.causal_diagrams[0].V]
+        self.more_U = {"U_{}".format(v) for v in self.causal_diagrams[0].V}
 
-        # TODO: need to make container for SCMs
+        self.SCMs = {t: None for t in range(T)}
         # TODO: prior for all edges in DBN
 
+        assert arm_strategy in arm_types()
         self.arm_strategy = arm_strategy
+        assert bandit_algorithm in ["TS", "UCB"]
         self.bandit_algorithm = bandit_algorithm
 
     def run(self):
@@ -66,7 +68,7 @@ class NSSCMMAB:
             assert int(target_temporal_index) == temporal_index
 
             # Create SCM, must take into account the optimal actions selected at t-1 if t > 0
-            M = StructuralCausalModel(
+            self.SCMs[temporal_index] = StructuralCausalModel(
                 G=self.causal_diagrams[temporal_index],
                 # TODO: need to set the clamped value if it exists
                 F=self.static_sem if temporal_index == 0 else self.dynamic_sem(clamped=None),
@@ -77,13 +79,12 @@ class NSSCMMAB:
 
             # Play this, piece-wise stationary bandit
             mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index])
-            arm_selected = arms_of(self.arm_strategy, arm_setting, M.G, target)
+            arm_selected = arms_of(self.arm_strategy, arm_setting, self.SCMs[temporal_index].G, target)
             arm_corrector = vectorize(lambda x: arm_selected[x])
 
             # Pick action by playing MAB
             arm_played, rewards = play_bandits(horizon, subseq(mu, arm_selected), bandit_algo, num_trial, n_jobs)
 
             # TODO: need to update statistics for next time-step through the transition functions (though this probably already happens in SCM_to_bandit_machine)
-
             # TODO: need to fix params in the SEM based on choices for this MAB
 
