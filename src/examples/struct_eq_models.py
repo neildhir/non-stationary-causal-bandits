@@ -43,15 +43,9 @@ class DynamicIVCD:
         # TODO: need to write a method which estimates this (i.e. in real life we do not have access to the SEM)
         return OrderedDict(
             {
-                "Z": lambda v, e, t: v["U_Z"][:, t] ^ e[:, t] if e is not None else v["U_Z"][:, t],
-                "X": lambda v, e, t: v["U_X"][:, t] ^ v["U_XY"][:, t] ^ v["Z"][:, t] ^ e[:, t]
-                if e is not None
-                else v["U_X"][:, t] ^ v["U_XY"][:, t] ^ v["Z"][:, t],
-                "Y": (
-                    lambda v, e, t: 1 ^ v["U_Y"][:, t] ^ v["U_XY"][:, t] ^ v["X"][:, t] ^ e[:, t]
-                    if e is not None
-                    else 1 ^ v["U_Y"][:, t] ^ v["U_XY"][:, t] ^ v["X"][:, t]
-                ),
+                "Z": lambda v, t: v["U_Z"][:, t],
+                "X": lambda v, t: v["U_X"][:, t] ^ v["U_XY"][:, t] ^ v["Z"][:, t],
+                "Y": lambda v, t: 1 ^ v["U_Y"][:, t] ^ v["U_XY"][:, t] ^ v["X"][:, t],
             }
         )
 
@@ -60,55 +54,29 @@ class DynamicIVCD:
         """
         Parameters
         ----------
-        clamped: clamped variables from the previous time-step (type: dict)
-
+        clamped: clamped variables from the previous time-step (type: dict), otherwise we are just sampling the system in its steady-state behaviour.
 
         Lambda function input parameters
         --------------------------------
         v: SCM variables (type: dict containing np.ndarraysa -- one per var)
-        e: noise (type: ndarray)
         t: time index (type: int)
         """
         return OrderedDict(
             {
                 # z_{t-1} --> Z <-- U_Z
-                "Z": (
-                    # Noisy/corrupted
-                    # TODO: do we need noise if we have stochastic unconfounded variables
-                    lambda v, e, t: v["U_Z"][:, t] ^ e[:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])
-                    if e is not None
-                    # Clean
-                    else v["U_Z"][:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])
-                ),
+                "Z": (lambda v, t: v["U_Z"][:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])),
                 # x_{t-1} --> X <-- {U_X, U_XY, Z}
                 "X": (
-                    # Noisy/corrupted
-                    lambda v, e, t: v["U_X"][:, t]
-                    ^ v["U_XY"][:, t]
-                    ^ v["Z"][:, t]
-                    ^ e[:, t]
-                    ^ (v["X"][:, t - 1] if clamped is None else clamped["X"])
-                    if e is not None
-                    # Clean
-                    else v["U_X"][:, t]
+                    lambda v, t: v["U_X"][:, t]
                     ^ v["U_XY"][:, t]
                     ^ v["Z"][:, t]
                     ^ (v["X"][:, t - 1] if clamped is None else clamped["X"])
                 ),
-                # y_{t-1} --> Y <-- {U_Y, U_XY, X}
                 # TODO: note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
+                # y_{t-1} --> Y <-- {U_Y, U_XY, X}
                 "Y": (
-                    # Noisy/corrupted
-                    lambda v, e, t: 1
+                    lambda v, t: 1
                     ^ v["U_Y"][:, t]  #  Remember that ^ (xor) is a bitwise operation
-                    ^ v["U_XY"][:, t]
-                    ^ v["X"][:, t]
-                    ^ e[:, t]
-                    ^ (v["Y"][:, t - 1] if clamped is None else clamped["Y"])
-                    if e is not None
-                    # Clean
-                    else 1
-                    ^ v["U_Y"][:, t]
                     ^ v["U_XY"][:, t]
                     ^ v["X"][:, t]
                     ^ (v["Y"][:, t - 1] if clamped is None else clamped["Y"])

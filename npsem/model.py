@@ -495,7 +495,6 @@ class StructuralCausalModel:
                 else:
                     # TODO: this needs a Markov dependency if it is to be used in time
                     # TODO: needs a temporal index
-                    # TODO: needs a noise term
                     assigned[V_i] = self.F[V_i](assigned)  # pa_i including unobserved
 
             if not all(assigned[V_i] == condition[V_i] for V_i in condition):

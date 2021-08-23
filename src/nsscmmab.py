@@ -57,7 +57,7 @@ class NSSCMMAB:
         assert arm_strategy in arm_types()
         self.arm_strategy = arm_strategy
         assert bandit_algorithm in ["TS", "UCB"]
-        self.play_bandit_params = {"T": horizon, "algo": bandit_algorithm, "n_trials": n_trials, "n_jobs": n_jobs}
+        self.play_bandit_args = {"T": horizon, "algo": bandit_algorithm, "n_trials": n_trials, "n_jobs": n_jobs}
 
     def run(self):
 
@@ -85,7 +85,9 @@ class NSSCMMAB:
             arm_corrector = vectorize(lambda x: arm_selected[x])
 
             # Pick action/intervention by playing MAB
-            arm_played, rewards = play_bandits(mu=subseq(mu, arm_selected), **self.play_bandit_params)
+            arm_played, rewards = play_bandits(mu=subseq(mu, arm_selected), **self.play_bandit_args)
+
+            # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
 
             # Clamp nodes corresponding to the best intervention
             optimal_node_setting = None
