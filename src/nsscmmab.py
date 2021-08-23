@@ -5,6 +5,7 @@
 # Date:   10 July 2021
 # =============================================
 
+from npsem.utils import subseq
 from npsem.model import StructuralCausalModel, default_P_U
 from npsem.bandits import play_bandits
 from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of
@@ -30,6 +31,9 @@ class NSSCMMAB:
         node_info: dict,
         confounder_info: dict,
         base_target_variable: str,
+        horizon: int,
+        n_trials: int,
+        n_jobs: int,
         arm_strategy="POMIS",
         bandit_algorithm="TS",
     ):
@@ -54,7 +58,7 @@ class NSSCMMAB:
         assert arm_strategy in arm_types()
         self.arm_strategy = arm_strategy
         assert bandit_algorithm in ["TS", "UCB"]
-        self.bandit_algorithm = bandit_algorithm
+        self.play_bandit_params = {"T": horizon, "algo": bandit_algorithm, "n_trials": n_trials, "n_jobs": n_jobs}
 
     def run(self):
 
@@ -70,8 +74,7 @@ class NSSCMMAB:
             # Create SCM, must take into account the optimal actions selected at t-1 if t > 0
             self.SCMs[temporal_index] = StructuralCausalModel(
                 G=self.causal_diagrams[temporal_index],
-                # TODO: need to set the clamped value if it exists
-                F=self.static_sem if temporal_index == 0 else self.dynamic_sem(clamped=None),
+                F=self.static_sem if temporal_index == 0 else self.dynamic_sem(clamped=optimal_node_setting),
                 P_U=self.P_U,
                 D=self.domains,
                 more_U=self.more_U,
@@ -82,8 +85,13 @@ class NSSCMMAB:
             arm_selected = arms_of(self.arm_strategy, arm_setting, self.SCMs[temporal_index].G, target)
             arm_corrector = vectorize(lambda x: arm_selected[x])
 
-            # Pick action by playing MAB
-            arm_played, rewards = play_bandits(horizon, subseq(mu, arm_selected), bandit_algo, num_trial, n_jobs)
+            # Pick action/intervention by playing MAB
+            arm_played, rewards = play_bandits(mu=subseq(mu, arm_selected), **self.play_bandit_params)
+
+            # Clamp nodes corresponding to the best intervention
+            optimal_node_setting = None
+            # Don't assign the wrong stuff (non-boolean)
+            assert all(value == 0 or value == 1 for value in optimal_node_setting.values())
 
             # TODO: need to update statistics for next time-step through the transition functions (though this probably already happens in SCM_to_bandit_machine)
             # TODO: need to fix params in the SEM based on choices for this MAB

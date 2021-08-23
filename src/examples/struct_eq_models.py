@@ -35,8 +35,7 @@ class DynamicIVCD:
         """
         Parameters
         ----------
-        exogeneous variables: u
-        endogenous variable: v
+        SCM variables: v
         noise: e
         time index: t
         """
@@ -44,47 +43,74 @@ class DynamicIVCD:
         # TODO: need to write a method which estimates this (i.e. in real life we do not have access to the SEM)
         return OrderedDict(
             {
-                "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ e[:, t] if e is not None else u["U_Z"][:, t],
-                "X": lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ e[:, t]
+                "Z": lambda v, e, t: v["U_Z"][:, t] ^ e[:, t] if e is not None else v["U_Z"][:, t],
+                "X": lambda v, e, t: v["U_X"][:, t] ^ v["U_XY"][:, t] ^ v["Z"][:, t] ^ e[:, t]
                 if e is not None
-                else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t],
+                else v["U_X"][:, t] ^ v["U_XY"][:, t] ^ v["Z"][:, t],
                 "Y": (
-                    lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ e[:, t]
+                    lambda v, e, t: 1 ^ v["U_Y"][:, t] ^ v["U_XY"][:, t] ^ v["X"][:, t] ^ e[:, t]
                     if e is not None
-                    else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t]
+                    else 1 ^ v["U_Y"][:, t] ^ v["U_XY"][:, t] ^ v["X"][:, t]
                 ),
             }
         )
 
     @staticmethod
-    def dynamic() -> dict:
+    def dynamic(clamped=None) -> dict:
         """
         Parameters
         ----------
-        exogeneous variables: u (type: dict containing np.ndarrays)
-        endogenous variable: v (type: dict containing np.ndarraysa -- one per var)
-        noise: e (type: ndarray)
-        time index: t (type: int)
+        clamped: clamped variables from the previous time-step (type: dict)
+
+
+        Lambda function input parameters
+        --------------------------------
+        v: SCM variables (type: dict containing np.ndarraysa -- one per var)
+        e: noise (type: ndarray)
+        t: time index (type: int)
         """
         return OrderedDict(
             {
                 # z_{t-1} --> Z <-- U_Z
-                "Z": lambda u, v, e, t: u["U_Z"][:, t] ^ v["Z"][:, t - 1] ^ e[:, t]
-                if e is not None
-                else u["U_Z"][:, t] ^ v["Z"][:, t - 1],
+                "Z": (
+                    # Noisy/corrupted
+                    lambda v, e, t: v["U_Z"][:, t] ^ e[:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])
+                    if e is not None
+                    # Clean
+                    else v["U_Z"][:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])
+                ),
                 # x_{t-1} --> X <-- {U_X, U_XY, Z}
                 "X": (
                     # Noisy/corrupted
-                    lambda u, v, e, t: u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1] ^ e[:, t]
+                    lambda v, e, t: v["U_X"][:, t]
+                    ^ v["U_XY"][:, t]
+                    ^ v["Z"][:, t]
+                    ^ e[:, t]
+                    ^ (v["X"][:, t - 1] if clamped is None else clamped["X"])
                     if e is not None
                     # Clean
-                    else u["U_X"][:, t] ^ u["U_XY"][:, t] ^ v["Z"][:, t] ^ v["X"][:, t - 1]
+                    else v["U_X"][:, t]
+                    ^ v["U_XY"][:, t]
+                    ^ v["Z"][:, t]
+                    ^ (v["X"][:, t - 1] if clamped is None else clamped["X"])
                 ),
                 # y_{t-1} --> Y <-- {U_Y, U_XY, X}
+                # TODO: note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
                 "Y": (
-                    lambda u, v, e, t: 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1] ^ e[:, t]
+                    # Noisy/corrupted
+                    lambda v, e, t: 1
+                    ^ v["U_Y"][:, t]
+                    ^ v["U_XY"][:, t]
+                    ^ v["X"][:, t]
+                    ^ e[:, t]
+                    ^ (v["Y"][:, t - 1] if clamped is None else clamped["Y"])
                     if e is not None
-                    else 1 ^ u["U_Y"][:, t] ^ u["U_XY"][:, t] ^ v["X"][:, t] ^ v["Y"][:, t - 1]
+                    # Clean
+                    else 1
+                    ^ v["U_Y"][:, t]
+                    ^ v["U_XY"][:, t]
+                    ^ v["X"][:, t]
+                    ^ (v["Y"][:, t - 1] if clamped is None else clamped["Y"])
                 ),
             }
         )

@@ -162,13 +162,15 @@ def thompson_sampling(T: int, mu, seed=None, prior_SF=None, **_kwargs):
     return arms_selected, rewards
 
 
-def play_bandits(T: int, mu, algo: str, repeat: int, n_jobs=1) -> Tuple[np.ndarray, np.ndarray]:
+def play_bandits(T: int, mu, algo: str, n_trials: int, n_jobs=1) -> Tuple[np.ndarray, np.ndarray]:
     if algo == "TS":
         par_result = Parallel(n_jobs=n_jobs, verbose=100)(
-            delayed(thompson_sampling)(T, mu, seed=trial) for trial in range(repeat)
+            delayed(thompson_sampling)(T, mu, seed=trial) for trial in range(n_trials)
         )
     elif algo == "UCB":
-        par_result = Parallel(n_jobs=n_jobs, verbose=100)(delayed(kl_UCB)(T, mu, seed=trial) for trial in range(repeat))
+        par_result = Parallel(n_jobs=n_jobs, verbose=100)(
+            delayed(kl_UCB)(T, mu, seed=trial) for trial in range(n_trials)
+        )
     else:
         raise AssertionError(f"unknown algo: {algo}")
 
