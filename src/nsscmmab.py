@@ -27,8 +27,7 @@ class NSSCMMAB:
         G,
         SEM: classmethod,
         mu1: dict,  # Reward distribution
-        domains: dict,
-        node_info: dict,
+        node_info: dict,  # Has to contain a domain key per manipulative variable
         confounder_info: dict,
         base_target_variable: str,
         horizon: int,
@@ -48,7 +47,7 @@ class NSSCMMAB:
         self.static_sem = sem.static()
         self.dynamic_sem = sem.dynamic()
         self.P_U = default_P_U(mu1)
-        self.domains = domains
+        self.domains = {key: val["domain"] for key, val in node_info.items()}
         # Remains the same for all time-slices
         self.more_U = {"U_{}".format(v) for v in self.causal_diagrams[0].V}
 
@@ -80,8 +79,8 @@ class NSSCMMAB:
                 more_U=self.more_U,
             )
 
-            # Play this, piece-wise stationary bandit
-            mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index])
+            # Play piece-wise stationary bandit
+            mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index], target_variable=target)
             arm_selected = arms_of(self.arm_strategy, arm_setting, self.SCMs[temporal_index].G, target)
             arm_corrector = vectorize(lambda x: arm_selected[x])
 
@@ -91,7 +90,7 @@ class NSSCMMAB:
             # Clamp nodes corresponding to the best intervention
             optimal_node_setting = None
             # Don't assign the wrong stuff (non-boolean)
-            assert all(value == 0 or value == 1 for value in optimal_node_setting.values())
+            assert all(val == 0 or val == 1 for val in optimal_node_setting.values())
 
             # TODO: need to update statistics for next time-step through the transition functions (though this probably already happens in SCM_to_bandit_machine)
             # TODO: need to fix params in the SEM based on choices for this MAB

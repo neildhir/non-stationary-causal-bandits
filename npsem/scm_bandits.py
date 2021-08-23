@@ -11,15 +11,17 @@ def SCM_to_bandit_machine(M: StructuralCausalModel, target_variable="Y") -> Tupl
     G = M.G
     mu_per_arm = list()  # Expected reward per arm
     arm_setting = dict()
-    arm_id = 0
     all_subsets = list(combinations(sorted(G.V - {target_variable})))
+    arm_id = 0
     for subset in all_subsets:
         # Domain here is assigned on the fly
+        # TODO: this is a rubbish construction for continuous variables
+        # TODO: pre-cache large multivariate domains. This is slow.
         for values in product(*[M.D[variable] for variable in subset]):
             #  E.g. Arm 1: do(X=1)
             arm_setting[arm_id] = dict(zip(subset, values))
             #  Get causal effect
-            result = M.query((target_variable,), intervention=arm_setting[arm_id])
+            result = M.query(outcome=(target_variable,), intervention=arm_setting[arm_id])
             expectation = sum(y_val * result[(y_val,)] for y_val in M.D[target_variable])
             mu_per_arm.append(expectation)
             arm_id += 1

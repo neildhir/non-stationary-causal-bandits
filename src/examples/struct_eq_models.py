@@ -74,6 +74,7 @@ class DynamicIVCD:
                 # z_{t-1} --> Z <-- U_Z
                 "Z": (
                     # Noisy/corrupted
+                    # TODO: do we need noise if we have stochastic unconfounded variables
                     lambda v, e, t: v["U_Z"][:, t] ^ e[:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])
                     if e is not None
                     # Clean
@@ -99,7 +100,7 @@ class DynamicIVCD:
                 "Y": (
                     # Noisy/corrupted
                     lambda v, e, t: 1
-                    ^ v["U_Y"][:, t]
+                    ^ v["U_Y"][:, t]  #  Remember that ^ (xor) is a bitwise operation
                     ^ v["U_XY"][:, t]
                     ^ v["X"][:, t]
                     ^ e[:, t]

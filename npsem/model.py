@@ -481,7 +481,8 @@ class StructuralCausalModel:
             print(f"ORDER: {V_ordered}")
         normalizer = 0
 
-        # XXX: the domain is grown dynamically here
+        # Multivariate domain found on the fly
+        # TODO: pre-cache large multivariate domains. This is slow.
         for u in product(*[D[U_i] for U_i in U]):  # d^|U|
             assigned = dict(zip(U, u))
             p_u = P_U(assigned)
@@ -492,6 +493,9 @@ class StructuralCausalModel:
                 if V_i in intervention:
                     assigned[V_i] = intervention[V_i]
                 else:
+                    # TODO: this needs a Markov dependency if it is to be used in time
+                    # TODO: needs a temporal index
+                    # TODO: needs a noise term
                     assigned[V_i] = self.F[V_i](assigned)  # pa_i including unobserved
 
             if not all(assigned[V_i] == condition[V_i] for V_i in condition):
