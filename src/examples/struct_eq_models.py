@@ -63,7 +63,7 @@ class DynamicIVCD:
         """
         return OrderedDict(
             {
-                # z_{t-1} --> Z <-- U_Z
+                # z_{t-1} (the 'clamped' part) --> Z <-- U_Z
                 "Z": (lambda v, t: v["U_Z"][:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])),
                 # x_{t-1} --> X <-- {U_X, U_XY, Z}
                 "X": (

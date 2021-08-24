@@ -7,7 +7,9 @@ from npsem.utils import combinations
 from npsem.where_do import POMISs, MISs
 
 
-def SCM_to_bandit_machine(M: StructuralCausalModel, target_variable="Y") -> Tuple[Tuple, Dict[Union[int, Any], Dict]]:
+def SCM_to_bandit_machine(
+    M: StructuralCausalModel, target_variable="Y"
+) -> Tuple[Tuple, Dict[Union[int, Any], Dict]]:
     G = M.G
     mu_per_arm = list()  # Expected reward per arm
     arm_setting = dict()

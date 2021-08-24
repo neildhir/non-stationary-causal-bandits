@@ -33,8 +33,8 @@ class NSSCMMAB:
         horizon: int,
         n_trials: int,
         n_jobs: int,
-        arm_strategy="POMIS",
-        bandit_algorithm="TS",
+        arm_strategy: str = "POMIS",
+        bandit_algorithm: str = "TS",  # Assumes that within time-slice bandit is stationary
     ):
 
         T = max([int(s) for s in "".join(G.nodes) if s.isdigit()]) + 1
@@ -72,6 +72,7 @@ class NSSCMMAB:
 
             # Create SCM, must take into account the optimal actions selected at t-1 if t > 0
             self.SCMs[temporal_index] = StructuralCausalModel(
+                temporal_index=temporal_index,
                 G=self.causal_diagrams[temporal_index],
                 F=self.static_sem if temporal_index == 0 else self.dynamic_sem(clamped=optimal_node_setting),
                 P_U=self.P_U,
@@ -85,7 +86,10 @@ class NSSCMMAB:
             arm_corrector = vectorize(lambda x: arm_selected[x])
 
             # Pick action/intervention by playing MAB
-            arm_played, rewards = play_bandits(mu=subseq(mu, arm_selected), **self.play_bandit_args)
+            self.play_bandit_args["mu"] = subseq(mu, arm_selected)
+            arm_played, rewards = play_bandits(**self.play_bandit_args)
+            results = dict()  # TODO: placeholder for now, remove later
+            results[(self.arm_strategy, self.bandit_algo)] = arm_corrector(arm_played), rewards
 
             # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
 

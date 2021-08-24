@@ -1,7 +1,7 @@
-from typing import Set, List, Tuple, FrozenSet, AbstractSet
+from typing import AbstractSet, FrozenSet, List, Set, Tuple
 
 from npsem.model import CausalDiagram
-from npsem.utils import pop, only, combinations
+from npsem.utils import combinations, only, pop
 
 
 def CC(G: CausalDiagram, X: str):

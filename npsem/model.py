@@ -450,7 +450,7 @@ class CausalDiagram:
 
 
 class StructuralCausalModel:
-    def __init__(self, G: CausalDiagram, F=None, P_U=None, D=None, more_U=None):
+    def __init__(self, G: CausalDiagram, temporal_index: int = None, F=None, P_U=None, D=None, more_U=None):
         self.G = G
         self.F = F
         self.P_U = P_U
@@ -458,6 +458,7 @@ class StructuralCausalModel:
         self.D = with_default(D, defaultdict(lambda: (0, 1)))
         self.more_U = set() if more_U is None else set(more_U)
         self.query00 = functools.lru_cache(1024)(self.query00)
+        self.tix = temporal_index
 
     def query(self, outcome: Tuple, condition: dict = None, intervention: dict = None, verbose=False) -> defaultdict:
         if condition is None:
@@ -493,9 +494,7 @@ class StructuralCausalModel:
                 if V_i in intervention:
                     assigned[V_i] = intervention[V_i]
                 else:
-                    # TODO: this needs a Markov dependency if it is to be used in time
-                    # TODO: needs a temporal index
-                    assigned[V_i] = self.F[V_i](assigned)  # pa_i including unobserved
+                    assigned[V_i] = self.F[V_i](assigned) if not self.tix else self.F[V_i](assigned, self.tix)
 
             if not all(assigned[V_i] == condition[V_i] for V_i in condition):
                 continue
