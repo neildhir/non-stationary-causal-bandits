@@ -1,13 +1,21 @@
 from graphviz import Source
+from networkx.classes.multidigraph import MultiDiGraph
 from numpy import repeat
 from itertools import cycle, chain
 from networkx import nx_agraph, set_node_attributes
 import pygraphviz
 from npsem.model import CausalDiagram
+from typing import Union
 
 
 def make_graphical_model(
-    start_time, stop_time, topology, target_node, node_information, confounder_info: None, verbose=False,
+    start_time: int,
+    stop_time: int,
+    topology: str,
+    target_node: int,
+    node_information: dict,
+    confounder_info: None,
+    verbose=False,
 ):
 
     """
@@ -134,8 +142,13 @@ def make_graphical_model(
         return graph
 
 
-def make_networkx_object(graph, node_information=None):
-    G = nx_agraph.from_agraph(pygraphviz.AGraph(graph.source))
+def make_networkx_object(graph: Union[str, MultiDiGraph], node_information: dict = None) -> MultiDiGraph:
+
+    if isinstance(graph, str):
+        G = nx_agraph.from_agraph(pygraphviz.AGraph(graph))
+    else:
+        G = nx_agraph.from_agraph(pygraphviz.AGraph(graph.source))
+
     if node_information:
         #  Sets what type of node each node is (manipulative, confounders, non-manipuatlive)
         ninfo = [node_information[node.split("_")[0]] for node in G.nodes]

@@ -5,10 +5,19 @@
 # Date:   10 July 2021
 # =============================================
 
-from npsem.utils import subseq
-from npsem.model import StructuralCausalModel, default_P_U
+
+# import sys
+
+# sys.path.append("..")
+# sys.path.append("../src")
+# sys.path.append("../../npsem")
+
+from examples.example_setup import setup_DynamicIVCD
+from networkx.classes import MultiDiGraph
 from npsem.bandits import play_bandits
+from npsem.model import StructuralCausalModel, default_P_U
 from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of
+from npsem.utils import subseq
 from numpy import vectorize
 from tqdm import trange
 from utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
@@ -24,7 +33,7 @@ class NSSCMMAB:
 
     def __init__(
         self,
-        G,
+        G: MultiDiGraph,  #  A dynamic Bayesian network
         SEM: classmethod,
         mu1: dict,  # Reward distribution
         node_info: dict,  # Has to contain a domain key per manipulative variable
@@ -43,15 +52,16 @@ class NSSCMMAB:
         sub_DAGs = get_time_slice_sub_graphs(G, T)
         # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, node_info, confounder_info)
-        sem = SEM()
+        sem = SEM()  #  Does not change throuhgout
         self.static_sem = sem.static()
         self.dynamic_sem = sem.dynamic()
         self.P_U = default_P_U(mu1)
         self.domains = {key: val["domain"] for key, val in node_info.items()}
-        # Remains the same for all time-slices
+        # Remains the same for all time-slices (just background variables)
         self.more_U = {"U_{}".format(v) for v in self.causal_diagrams[0].V}
 
         self.SCMs = {t: None for t in range(T)}
+
         # TODO: prior for all edges in DBN
 
         assert arm_strategy in arm_types()
@@ -88,8 +98,7 @@ class NSSCMMAB:
             # Pick action/intervention by playing MAB
             self.play_bandit_args["mu"] = subseq(mu, arm_selected)
             arm_played, rewards = play_bandits(**self.play_bandit_args)
-            results = dict()  # TODO: placeholder for now, remove later
-            results[(self.arm_strategy, self.bandit_algo)] = arm_corrector(arm_played), rewards
+            to_something_with_this_variable = arm_corrector(arm_played)
 
             # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
 
@@ -101,3 +110,16 @@ class NSSCMMAB:
             # TODO: need to update statistics for next time-step through the transition functions (though this probably already happens in SCM_to_bandit_machine)
             # TODO: need to fix params in the SEM based on choices for this MAB
 
+
+def main():
+    """
+    Test method with standard params.
+    """
+    params = setup_DynamicIVCD()
+    m = NSSCMMAB(**params)
+    m.run()
+
+
+if __name__ == "__main__":
+    # TODO: write tests
+    main()
