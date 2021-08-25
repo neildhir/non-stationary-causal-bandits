@@ -12,15 +12,16 @@
 # sys.path.append("../src")
 # sys.path.append("../../npsem")
 
-from examples.example_setup import setup_DynamicIVCD
 from networkx.classes import MultiDiGraph
+from numpy import vectorize
+from tqdm import trange
+
 from npsem.bandits import play_bandits
 from npsem.model import StructuralCausalModel, default_P_U
 from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of
 from npsem.utils import subseq
-from numpy import vectorize
-from tqdm import trange
-from utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
+from src.examples.example_setup import setup_DynamicIVCD
+from src.utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
 
 
 class NSSCMMAB:
@@ -46,10 +47,10 @@ class NSSCMMAB:
         bandit_algorithm: str = "TS",  # Assumes that within time-slice bandit is stationary
     ):
 
-        T = max([int(s) for s in "".join(G.nodes) if s.isdigit()]) + 1
+        self.T = max([int(s) for s in "".join(G.nodes) if s.isdigit()]) + 1
         # Extract all target variables from the causal graphical model
         self.all_target_variables = list(filter(lambda k: base_target_variable in k, G.nodes))
-        sub_DAGs = get_time_slice_sub_graphs(G, T)
+        sub_DAGs = get_time_slice_sub_graphs(G, self.T)
         # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, node_info, confounder_info)
         sem = SEM()  #  Does not change throuhgout
@@ -60,7 +61,7 @@ class NSSCMMAB:
         # Remains the same for all time-slices (just background variables)
         self.more_U = {"U_{}".format(v) for v in self.causal_diagrams[0].V}
 
-        self.SCMs = {t: None for t in range(T)}
+        self.SCMs = {t: None for t in range(self.T)}
 
         # TODO: prior for all edges in DBN
 
@@ -72,7 +73,7 @@ class NSSCMMAB:
     def run(self):
 
         # Walk through the graph, from left to right, i.e. the temporal dimension
-        for temporal_index in trange(self.total_timesteps, desc="Time index"):
+        for temporal_index in trange(self.T, desc="Time index"):
 
             # Get target for this time index
             target = self.all_target_variables[temporal_index]
