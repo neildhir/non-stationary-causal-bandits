@@ -16,16 +16,18 @@ def setup_DynamicIVCD():
         # Node properties are constant across time-slices
         #  We could use defaultdict(lambda: (0,1)) instead of specifying each domain separately
         node_info = {
+            # Endogenous
             "Z": {"type": "manipulative", "domain": (0, 1)},
             "X": {"type": "manipulative", "domain": (0, 1)},
             "Y": {"type": "manipulative", "domain": (0, 1)},
+            # Exogenous
             "U_Z": {"type": "background", "domain": (0, 1)},
             "U_X": {"type": "background", "domain": (0, 1)},
             "U_Y": {"type": "background", "domain": (0, 1)},
             "U_XY": {"type": "confounder", "domain": (0, 1)},
         }
 
-        # Constructor for adding unobserved confounders
+        # Constructor for adding unobserved confounders to graphical model
         confounders = {0: ("X", "Y"), 1: ("X", "Y"), 2: ("X", "Y")}
 
         T = 3

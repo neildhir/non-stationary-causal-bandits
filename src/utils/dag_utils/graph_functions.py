@@ -94,6 +94,8 @@ def make_graphical_model(
     else:
         raise ValueError("Not a valid time-slice topology.")
 
+    ## Background edges (noise/unobserved-factors variables and other stuff)
+
     ## Confounding edges
 
     if confounder_info:
@@ -151,6 +153,7 @@ def make_networkx_object(graph: Union[str, MultiDiGraph], node_information: dict
 
     if node_information:
         #  Sets what type of node each node is (manipulative, confounders, non-manipuatlive)
+        # TODO: we need to update this so that background variables are accounted for in teh attribute update.
         ninfo = [node_information[node.split("_")[0]] for node in G.nodes]
         attrs = dict(zip(G.nodes, ninfo))
         set_node_attributes(G, attrs)
@@ -194,3 +197,27 @@ def make_time_slice_causal_diagrams(sub_graphs: list, node_info: dict, confounde
         )
 
     return sub_causal_diagrams
+
+
+def main():
+    node_info = {
+        "Z": {"type": "manipulative", "domain": (0, 1)},
+        "X": {"type": "manipulative", "domain": (0, 1)},
+        "Y": {"type": "manipulative", "domain": (-1, 1)},
+        "U": {"type": "confounder"},
+    }
+    uc_constructor = {0: ("X", "Y"), 1: ("X", "Y"), 2: ("X", "Y")}
+    T = 3
+    make_graphical_model(
+        0,
+        T - 1,
+        topology="dependent",
+        target_node="Y",
+        node_information=node_info,
+        confounder_info=uc_constructor,
+        verbose=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
