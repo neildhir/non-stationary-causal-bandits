@@ -47,6 +47,7 @@ def make_graphical_model(
 
     assert start_time <= stop_time
     assert topology in ["dependent", "independent"]
+    T = stop_time + 1
 
     # Get manipulative nodes
     nodes = [key for key in node_information.keys() if node_information[key]["type"] != "confounder"]
@@ -90,17 +91,32 @@ def make_graphical_model(
             iters = [iter(edge_pairs), iter(space_idx)]
             inserts = list(chain(map(next, cycle(iters)), *iters))
             time_slice_edges.append(connections.format(*inserts))
-            ranking.append("{{ rank=same; {} }} ".format(" ".join([item + "_{}".format(t) for item in nodes])))
+            ranking.append("{{ rank=same; {} }}".format(" ".join([item + "_{}".format(t) for item in nodes])))
     else:
         raise ValueError("Not a valid time-slice topology.")
 
     ## Background edges (noise/unobserved-factors variables and other stuff)
 
+    background_edges = []
+    connections = node_count * "{} -> {} [style=dashed]; "
+    for t in range(start_time, T):
+        main_node_info = [val for pair in zip(nodes, T * [str(t)]) for val in pair]
+        main_nodes = ["_".join(x) for x in zip(main_node_info[0::2], main_node_info[1::2])]
+        # Background variables (noise and so on)
+        background_nodes = ["U_{}".format(i) for i in main_nodes]
+        background_edges.append(
+            connections.format(*[val for pair in zip(background_nodes, main_nodes) for val in pair])
+        )
+        idx = ranking[t].index("}")
+        ranking[t] = ranking[t][:idx] + " ".join(background_nodes) + ranking[t][idx:]
+
+    background_edges = "".join(background_edges)
+
     ## Confounding edges
 
     if confounder_info:
         confounders = []
-        common_cause = 2 * "{}_{} -> {}_{} [style=dashed, color=red, constraint=false]; "
+        common_cause = 2 * "{}_{} -> {}_{} [style=dashed, color=red, penwidth = 2, constraint=false]; "
         for t in confounder_info.keys():
             if isinstance(confounder_info[t], list):
                 raise NotImplementedError("Cannot yet have multiple UCs.")
@@ -119,9 +135,9 @@ def make_graphical_model(
         time_slice_edges = "".join(time_slice_edges)
         ranking = "".join(ranking)
 
-    ## Temporal edges
+    ## Time transition edges
 
-    temporal_edges = []
+    transition_edges = []
     if topology == "independent":
         node_count += 1
         nodes += [target_node]
@@ -132,11 +148,13 @@ def make_graphical_model(
         temporal_idx = node_count * [t, t + 1]
         iters = [iter(edge_pairs), iter(temporal_idx)]
         inserts = list(chain(map(next, cycle(iters)), *iters))
-        temporal_edges.append(connections.format(*inserts))
+        transition_edges.append(connections.format(*inserts))
 
-    temporal_edges = "".join(temporal_edges)
+    transition_edges = "".join(transition_edges)
 
-    graph = "digraph {{ rankdir=LR; ranksep=1.1; {} {} {} }}".format(time_slice_edges, temporal_edges, ranking)
+    graph = "digraph {{ rankdir=LR; ranksep=1.3; {} {} {} {}}}".format(
+        time_slice_edges, background_edges, transition_edges, ranking
+    )
 
     if verbose:
         return Source(graph)
