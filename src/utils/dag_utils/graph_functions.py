@@ -104,6 +104,7 @@ def make_graphical_model(
         main_nodes = ["_".join(x) for x in zip(main_node_info[0::2], main_node_info[1::2])]
         # Background variables (noise and so on)
         background_nodes = ["U_{}".format(i) for i in main_nodes]
+        # background_nodes = ["U_{}".format(i) for i in nodes]
         background_edges.append(
             connections.format(*[val for pair in zip(background_nodes, main_nodes) for val in pair])
         )
@@ -120,14 +121,19 @@ def make_graphical_model(
         for t in confounder_info.keys():
             if isinstance(confounder_info[t], list):
                 raise NotImplementedError("Cannot yet have multiple UCs.")
-            l1 = ["U", confounder_info[t][0], "U", confounder_info[t][-1]]
+            l1 = [
+                "U_{}".format("".join(confounder_info[t])),
+                confounder_info[t][0],
+                "U_{}".format("".join(confounder_info[t])),
+                confounder_info[t][-1],
+            ]
             l2 = 4 * [t]
             inserts = [val for pair in zip(l1, l2) for val in pair]
             confounders.append(common_cause.format(*inserts))
         time_slice_edges = "".join(time_slice_edges + confounders)
         #  Update ranking to take into account UC
         for t in confounder_info.keys():
-            uc = " U_{}".format(t)
+            uc = " U_{}_{}".format("".join(confounder_info[t]), t)
             idx = ranking[t].index("}")
             ranking[t] = ranking[t][:idx] + uc + ranking[t][idx:]
         ranking = "".join(ranking)
@@ -152,7 +158,7 @@ def make_graphical_model(
 
     transition_edges = "".join(transition_edges)
 
-    graph = "digraph {{ rankdir=LR; ranksep=1.3; {} {} {} {}}}".format(
+    graph = "digraph {{ rankdir=LR; ranksep=1.1; {} {} {} {}}}".format(
         time_slice_edges, background_edges, transition_edges, ranking
     )
 
