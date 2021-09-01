@@ -177,8 +177,7 @@ def make_networkx_object(graph: Union[str, MultiDiGraph], node_information: dict
 
     if node_information:
         #  Sets what type of node each node is (manipulative, confounders, non-manipuatlive)
-        # TODO: we need to update this so that background variables are accounted for in teh attribute update.
-        ninfo = [node_information[node.split("_")[0]] for node in G.nodes]
+        ninfo = [node_information["_".join(node.split("_")[:-1])] for node in G.nodes]
         attrs = dict(zip(G.nodes, ninfo))
         set_node_attributes(G, attrs)
         return G
@@ -193,31 +192,27 @@ def get_time_slice_sub_graphs(G, T: int) -> list:
     return sub_graphs
 
 
-def make_time_slice_causal_diagrams(sub_graphs: list, node_info: dict, confounder_info: dict) -> list:
+def make_time_slice_causal_diagrams(sub_graphs: list, confounder_info: dict) -> list:
     T = len(sub_graphs)
     sub_causal_diagrams = []
+    time_strip = lambda node: "_".join(node.split("_")[:-1])
 
     for t in range(T):
         edges = [e[:-1] for e in sub_graphs[t].edges]
-        directed_edges = [edge for edge in edges if all(sub_graphs[t].nodes[v]["type"] != "confounder" for v in edge)]
-        directed_edges = [tuple([v.split("_")[0] for v in edge]) for edge in directed_edges]
-        variables = set(
-            [
-                node.split("_")[0]
-                for node in sub_graphs[0].nodes
-                if node_info[node.split("_")[0]]["type"] != "confounder"
-            ]
-        )
+        directed_edges = [edge for edge in edges if edge[0][0] != "U" and edge[-1][0] != "U"]
+        directed_edges = [tuple([time_strip(v) for v in edge]) for edge in directed_edges]
+        # directed_edges = [tuple([v.split("_")[0] for v in edge]) for edge in directed_edges]
+        variables = set([node for node in [time_strip(node) for node in sub_graphs[t].nodes] if node[0] != "U"])
 
         # Unobserved confounders here
-        # TODO: currently only allow for ONE confounder per time-slice
-        bi_edges = frozenset()
+        bidirectional_edges = frozenset()
         if t in confounder_info.keys():
-            bi_edges = [confounder_info[t] + ("U_{}".format(t),)]
+            # XXX: currently only allow for ONE confounder per time-slice
+            bidirectional_edges = [confounder_info[t] + ("U_{}".format("".join(confounder_info[t])),)]
 
         #  Set causal diagrams for this sub-graph
         sub_causal_diagrams.append(
-            CausalDiagram(variables=variables, directed_edges=directed_edges, bidirected_edges=bi_edges)
+            CausalDiagram(variables=variables, directed_edges=directed_edges, bidirected_edges=bidirectional_edges)
         )
 
     return sub_causal_diagrams
