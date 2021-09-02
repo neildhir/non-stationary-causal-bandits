@@ -59,7 +59,7 @@ class NSSCMMAB:
         self.P_U = default_P_U(mu1)
         self.domains = {key: val["domain"] for key, val in node_info.items()}
         # Remains the same for all time-slices (just background variables)
-        self.more_U = {"U_{}".format(v) for v in self.causal_diagrams[0].V}
+        self.more_U = {key for key in node_info.keys() if key[0] == "U"}
 
         self.SCMs = {t: None for t in range(self.T)}
 
@@ -70,6 +70,7 @@ class NSSCMMAB:
         assert bandit_algorithm in ["TS", "UCB"]
         self.play_bandit_args = {"T": horizon, "algo": bandit_algorithm, "n_trials": n_trials, "n_jobs": n_jobs}
 
+    # Play piece-wise stationary bandit
     def run(self):
 
         # Walk through the graph, from left to right, i.e. the temporal dimension
@@ -78,10 +79,11 @@ class NSSCMMAB:
             # Get target for this time index
             target = self.all_target_variables[temporal_index]
             # Check that indices line up for this time-slice
-            _, target_temporal_index = target.split("_")
-            assert int(target_temporal_index) == temporal_index
+            target_var_only, target_var_temporal_index = target.split("_")
+            assert int(target_var_temporal_index) == temporal_index
 
-            # Create SCM, must take into account the optimal actions selected at t-1 if t > 0
+            # Create SCM
+            # TODO: CD must take into account the optimal actions selected at t-1 if t > 0 OR?
             self.SCMs[temporal_index] = StructuralCausalModel(
                 temporal_index=temporal_index,
                 G=self.causal_diagrams[temporal_index],
@@ -91,24 +93,29 @@ class NSSCMMAB:
                 more_U=self.more_U,
             )
 
-            # Play piece-wise stationary bandit
-            mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index], target_variable=target)
+            #  Convert time-slice SCM to bandit machine
+            mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index], target_variable=target_var_only)
+            #  Select arm strategy, one of: "POMIS", "MIS", "Brute-force", "All-at-once"
             arm_selected = arms_of(self.arm_strategy, arm_setting, self.SCMs[temporal_index].G, target)
             arm_corrector = vectorize(lambda x: arm_selected[x])
 
-            # Pick action/intervention by playing MAB
+            # Set the rewards distribution
             self.play_bandit_args["mu"] = subseq(mu, arm_selected)
+            # Pick action/intervention by playing MAB
             arm_played, rewards = play_bandits(**self.play_bandit_args)
             to_something_with_this_variable = arm_corrector(arm_played)
+
+            # TODO: investigate rewards and figure out which intervention is the best
 
             # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
 
             # Clamp nodes corresponding to the best intervention
-            optimal_node_setting = None
+            optimal_node_setting = {v: val for v, val in zip(self.causal_diagrams[temporal_index].V, arm_played)}
             # Don't assign the wrong stuff (non-boolean)
             assert all(val == 0 or val == 1 for val in optimal_node_setting.values())
 
             # TODO: need to update statistics for next time-step through the transition functions (though this probably already happens in SCM_to_bandit_machine)
+
             # TODO: need to fix params in the SEM based on choices for this MAB
 
 

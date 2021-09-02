@@ -220,12 +220,17 @@ def make_time_slice_causal_diagrams(sub_graphs: list, confounder_info: dict) -> 
 
 def main():
     node_info = {
+        # Endogenous
         "Z": {"type": "manipulative", "domain": (0, 1)},
         "X": {"type": "manipulative", "domain": (0, 1)},
-        "Y": {"type": "manipulative", "domain": (-1, 1)},
-        "U": {"type": "confounder"},
+        "Y": {"type": "manipulative", "domain": (0, 1)},
+        # Exogenous / background conditions
+        "U_Z": {"type": "background", "domain": (0, 1)},
+        "U_X": {"type": "background", "domain": (0, 1)},
+        "U_Y": {"type": "background", "domain": (0, 1)},
+        "U_XY": {"type": "confounder", "domain": (0, 1)},
     }
-    uc_constructor = {0: ("X", "Y"), 1: ("X", "Y"), 2: ("X", "Y")}
+    conf_info = {0: ("X", "Y"), 1: ("X", "Y"), 2: ("X", "Y")}
     T = 3
     make_graphical_model(
         0,
@@ -233,7 +238,7 @@ def main():
         topology="dependent",
         target_node="Y",
         node_information=node_info,
-        confounder_info=uc_constructor,
+        confounder_info=conf_info,
         verbose=True,
     )
 

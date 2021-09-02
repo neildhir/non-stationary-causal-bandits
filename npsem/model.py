@@ -452,7 +452,7 @@ class CausalDiagram:
 class StructuralCausalModel:
     def __init__(self, G: CausalDiagram, temporal_index: int = None, F=None, P_U=None, D=None, more_U=None):
         self.G = G
-        self.F = F
+        self.F = F  # SEM can or can not be time-indexed
         self.P_U = P_U
         # This is a _very_ clever function
         self.D = with_default(D, defaultdict(lambda: (0, 1)))
@@ -494,6 +494,7 @@ class StructuralCausalModel:
                 if V_i in intervention:
                     assigned[V_i] = intervention[V_i]
                 else:
+                    #  We can sample dynamic (stationary or non-stationary) SEMs as well as static ones.
                     assigned[V_i] = self.F[V_i](assigned) if not self.tix else self.F[V_i](assigned, self.tix)
 
             if not all(assigned[V_i] == condition[V_i] for V_i in condition):
