@@ -64,7 +64,7 @@ class DynamicIVCD:
         """
         return OrderedDict(
             {
-                # z_{t-1} (the 'clamped' part) --> Z <-- U_Z
+                # z_{t-1} (the 'clamped' part if it exists) --> Z <-- U_Z
                 # TODO:if clamped is None the v["Z"][:,t-1] needs to be sampled? More importantly because v["Z"][:,t-1] is a PMF it needs to be sampled each time this functional SEM is called.
                 "Z": (lambda v, t: v["U_Z"][:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])),
                 # x_{t-1} --> X <-- {U_X, U_XY, Z}
