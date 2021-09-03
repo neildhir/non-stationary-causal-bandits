@@ -40,8 +40,6 @@ class DynamicIVCD:
         time index: t
         """
 
-        # TODO: need to write a method which estimates this (i.e. in real life we do not have access to the SEM)
-
         return OrderedDict(
             {
                 "Z": lambda v, t: v["U_Z"][:, t],
@@ -59,7 +57,7 @@ class DynamicIVCD:
 
         Lambda function input parameters
         --------------------------------
-        v: SCM variables (type: dict containing np.ndarraysa -- one per var)
+        v: SCM variables (type: dict containing np.ndarrays -- one per var)
         t: time index (type: int)
         """
         return OrderedDict(
