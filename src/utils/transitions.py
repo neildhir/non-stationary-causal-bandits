@@ -1,5 +1,27 @@
 import numpy as np
 from src.utils.forecast import make_conditional_bernoulli
+from networkx.classes.multidigraph import MultiDiGraph
+
+
+def get_transition_pairs(dag: MultiDiGraph) -> dict:
+    #  Parents of all nodes
+    node_parents = {node: None for node in dag.nodes if node[0] != "U"}
+    for node in node_parents:
+        node_parents[node] = tuple([node for node in dag.predecessors(node) if node[0] != "U"])
+
+    # Find all inputs and outputs for transition functions
+    transfer_pairs = {}
+    for node in node_parents:
+        _, time = node.split("_")
+        if node_parents[node] and time > "0":
+            tmp = [parent for parent in node_parents[node] if parent.split("_")[1] != time]
+            assert len(tmp) != 0, (node, node_parents[node], tmp)
+            transfer_pairs[node] = tmp
+
+    # Flip keys and values to get explicit input-output order
+    transfer_pairs = dict((tuple(v), k) for k, v in transfer_pairs.items())
+
+    return transfer_pairs
 
 
 def fit_trans_mat(obs):
@@ -12,7 +34,7 @@ def fit_trans_mat(obs):
     return M / row_sums
 
 
-def fit_sem_transition_functions(observational_samples, transfer_pairs: dict) -> dict:
+def fit_sem_hat_transition_functions(observational_samples, transfer_pairs: dict) -> dict:
 
     # Store function which concern t-1 --> t
     transition_functions = {}
@@ -38,3 +60,4 @@ def fit_sem_transition_functions(observational_samples, transfer_pairs: dict) ->
         transition_functions[input_vars] = make_conditional_bernoulli(trans_mat)
 
     return transition_functions
+

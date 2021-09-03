@@ -168,12 +168,15 @@ def make_graphical_model(
         return graph
 
 
-def make_networkx_object(graph: Union[str, MultiDiGraph], node_information: dict = None) -> MultiDiGraph:
+def make_networkx_object(graph: Union[str, MultiDiGraph], node_information: dict = None, T: int = None) -> MultiDiGraph:
 
     if isinstance(graph, str):
         G = nx_agraph.from_agraph(pygraphviz.AGraph(graph))
     else:
         G = nx_agraph.from_agraph(pygraphviz.AGraph(graph.source))
+
+    # Add the total length of DBN as well so we don't need to add it later
+    G.total_time = T
 
     if node_information:
         #  Sets what type of node each node is (manipulative, confounders, non-manipuatlive)

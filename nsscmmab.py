@@ -6,12 +6,6 @@
 # =============================================
 
 
-# import sys
-
-# sys.path.append("..")
-# sys.path.append("../src")
-# sys.path.append("../../npsem")
-
 from networkx.classes import MultiDiGraph
 from numpy import vectorize
 from tqdm import trange
@@ -47,24 +41,25 @@ class NSSCMMAB:
         bandit_algorithm: str = "TS",  # Assumes that within time-slice bandit is stationary
     ):
 
-        self.T = max([int(s) for s in "".join(G.nodes) if s.isdigit()]) + 1
+        self.T = G.total_time
         # Extract all target variables from the causal graphical model
-        self.all_target_variables = list(filter(lambda k: base_target_variable in k, G.nodes))
+        self.all_target_variables = [s for s in G.nodes if s.startswith(base_target_variable)]
         sub_DAGs = get_time_slice_sub_graphs(G, self.T)
         # Causal diagrams used for making SCMs upon which bandit algo acts
-        self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, node_info, confounder_info)
+        self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, confounder_info)
         sem = SEM()  #  Does not change throuhgout
         self.static_sem = sem.static()
         self.dynamic_sem = sem.dynamic()
+
+        # TODO: option here if we want to use observational data to estimate the SEM or we assume we have access to the true SEM. Have so far coded up the transition part (see transitions.py) but it remains to do the emission part.
+
         self.P_U = default_P_U(mu1)
         self.domains = {key: val["domain"] for key, val in node_info.items()}
         # Remains the same for all time-slices (just background variables)
         self.more_U = {key for key in node_info.keys() if key[0] == "U"}
-
         self.SCMs = {t: None for t in range(self.T)}
 
-        # TODO: prior for all edges in DBN
-
+        # Bandit settings
         assert arm_strategy in arm_types()
         self.arm_strategy = arm_strategy
         assert bandit_algorithm in ["TS", "UCB"]
@@ -83,7 +78,6 @@ class NSSCMMAB:
             assert int(target_var_temporal_index) == temporal_index
 
             # Create SCM
-            # TODO: CD must take into account the optimal actions selected at t-1 if t > 0 OR?
             self.SCMs[temporal_index] = StructuralCausalModel(
                 temporal_index=temporal_index,
                 G=self.causal_diagrams[temporal_index],
@@ -110,11 +104,12 @@ class NSSCMMAB:
             # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
 
             # Clamp nodes corresponding to the best intervention
-            optimal_node_setting = {v: val for v, val in zip(self.causal_diagrams[temporal_index].V, arm_played)}
+            # TODO: need to update statistics for next time-step through the (possibly estimated if we are using observational data) transition functions (though this probably already happens in SCM_to_bandit_machine)
+            optimal_node_setting = {
+                var: val for var, val in zip(self.causal_diagrams[temporal_index].V, transition_function(arm_played))
+            }
             # Don't assign the wrong stuff (non-boolean)
             assert all(val == 0 or val == 1 for val in optimal_node_setting.values())
-
-            # TODO: need to update statistics for next time-step through the transition functions (though this probably already happens in SCM_to_bandit_machine)
 
             # TODO: need to fix params in the SEM based on choices for this MAB
 
@@ -129,5 +124,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # TODO: write tests
     main()
