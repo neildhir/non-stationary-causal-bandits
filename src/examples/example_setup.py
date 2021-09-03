@@ -57,7 +57,7 @@ def setup_DynamicIVCD():
             "node_info": node_info,
             "confounder_info": confounders,
             "base_target_variable": "Y",
-            "horizon": 10,
-            "n_trials": 2,
-            "n_jobs": 2,
+            "horizon": 1000,
+            "n_trials": 100,
+            "n_jobs": 4,
         }

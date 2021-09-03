@@ -8,6 +8,7 @@
 
 from networkx.classes import MultiDiGraph
 from numpy import vectorize
+import numpy as np
 from tqdm import trange
 
 from npsem.bandits import play_bandits
@@ -79,7 +80,6 @@ class NSSCMMAB:
 
             # Create SCM
             self.SCMs[temporal_index] = StructuralCausalModel(
-                temporal_index=temporal_index,
                 G=self.causal_diagrams[temporal_index],
                 F=self.static_sem if temporal_index == 0 else self.dynamic_sem(clamped=optimal_node_setting),
                 P_U=self.P_U,
@@ -90,14 +90,24 @@ class NSSCMMAB:
             #  Convert time-slice SCM to bandit machine
             mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index], target_variable=target_var_only)
             #  Select arm strategy, one of: "POMIS", "MIS", "Brute-force", "All-at-once"
-            arm_selected = arms_of(self.arm_strategy, arm_setting, self.SCMs[temporal_index].G, target)
+            arm_selected = arms_of(self.arm_strategy, arm_setting, self.SCMs[temporal_index].G, target_var_only)
             arm_corrector = vectorize(lambda x: arm_selected[x])
 
             # Set the rewards distribution
             self.play_bandit_args["mu"] = subseq(mu, arm_selected)
             # Pick action/intervention by playing MAB
             arm_played, rewards = play_bandits(**self.play_bandit_args)
-            to_something_with_this_variable = arm_corrector(arm_played)
+
+            unique, counts = np.unique(arm_corrector(arm_played), return_counts=True)
+            print("\n\n----------", dict(zip(unique, counts)))
+
+            # results = dict()
+            # results[(self.arm_strategy, self.play_bandit_args["algo"])] = (
+            #     arm_corrector(arm_played),
+            #     rewards,
+            # )
+            print("done")
+            # to_something_with_this_variable = arm_corrector(arm_played)
 
             # TODO: investigate rewards and figure out which intervention is the best
 

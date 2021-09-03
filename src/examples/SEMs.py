@@ -18,20 +18,25 @@ class DynamicIVCD:
     4. We can bolt-on transition functions too to make the problem even harder
     """
 
-    def __init__(self):
-        """
-        Not currently used. Will be used if we transition to a MDP/POMDP scenario and have requirements for transition functions.
-        """
-        transmatZ = {0: [0.5, 0.5], 1: [0.35, 0.65]}
-        transmatX = {0: [0.1, 0.9], 1: [0.8, 0.2]}
-        transmatY = {0: [0.75, 0.25], 1: [0.3, 0.7]}
-        # Usage: self.trans_funcZ(s["Z"][t - 1])
-        self.trans_funcZ = np.vectorize(lambda state: np.random.choice(2, 1, p=transmatZ[state]))
-        self.trans_funcX = np.vectorize(lambda state: np.random.choice(2, 1, p=transmatX[state]))
-        self.trans_funcY = np.vectorize(lambda state: np.random.choice(2, 1, p=transmatY[state]))
-
     @staticmethod
     def static() -> dict:
+        """
+        Parameters
+        ----------
+        SCM variables: v
+        noise: e
+        time index: t
+        """
+        return OrderedDict(
+            {
+                "Z": lambda v: v["U_Z"],
+                "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"],
+                "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"],
+            }
+        )
+
+    @staticmethod
+    def static_vec() -> dict:
         """
         Parameters
         ----------
@@ -50,6 +55,38 @@ class DynamicIVCD:
 
     @staticmethod
     def dynamic(clamped=None) -> dict:
+        """
+        Parameters
+        ----------
+        clamped: clamped variables from the previous time-step (type: dict), otherwise we are just sampling the system in its steady-state behaviour.
+
+        Lambda function input parameters
+        --------------------------------
+        v: SCM variables (type: dict containing np.ndarrays -- one per var)
+        """
+        # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
+        return OrderedDict(
+            {
+                # z_{t-1} (the 'clamped' part if it exists) --> Z <-- U_Z
+                # TODO:if clamped is None the v["Z"][:,t-1] needs to be sampled? More importantly because v["Z"][:,t-1] is a PMF it needs to be sampled each time this functional SEM is called.
+                # ANSWER: it does need to sampled but that is done _before_ it passed to the clamped dictionary so that the value can just be used as is in here.
+                "Z": (lambda v: v["U_Z"] ^ (clamped["Z"])),
+                # x_{t-1} --> X <-- {U_X, U_XY, Z}
+                "X": (lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ (clamped["X"])),
+                # TODO: note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
+                # y_{t-1} --> Y <-- {U_Y, U_XY, X}
+                "Y": (
+                    lambda v: 1
+                    ^ v["U_Y"]  #  Remember that ^ (xor) is a bitwise operation
+                    ^ v["U_XY"]
+                    ^ v["X"]
+                    ^ (clamped["Y"])
+                ),
+            }
+        )
+
+    @staticmethod
+    def dynamic_vec(clamped=None) -> dict:
         """
         Parameters
         ----------
@@ -84,4 +121,3 @@ class DynamicIVCD:
                 ),
             }
         )
-
