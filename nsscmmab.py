@@ -8,7 +8,6 @@
 
 from networkx.classes import MultiDiGraph
 from numpy import vectorize
-import numpy as np
 from tqdm import trange
 
 from npsem.bandits import play_bandits
@@ -17,6 +16,7 @@ from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of
 from npsem.utils import subseq
 from src.examples.example_setup import setup_DynamicIVCD
 from src.utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
+from utils.postprocess import get_results
 
 
 class NSSCMMAB:
@@ -66,6 +66,9 @@ class NSSCMMAB:
         assert bandit_algorithm in ["TS", "UCB"]
         self.play_bandit_args = {"T": horizon, "algo": bandit_algorithm, "n_trials": n_trials, "n_jobs": n_jobs}
 
+        # Results
+        self.results = {t: None for t in range(self.T)}
+
     # Play piece-wise stationary bandit
     def run(self):
 
@@ -97,19 +100,14 @@ class NSSCMMAB:
             self.play_bandit_args["mu"] = subseq(mu, arm_selected)
             # Pick action/intervention by playing MAB
             arm_played, rewards = play_bandits(**self.play_bandit_args)
+            arm_played = arm_corrector(arm_played)
 
-            unique, counts = np.unique(arm_corrector(arm_played), return_counts=True)
-            print("\n\n----------", dict(zip(unique, counts)))
-
-            # results = dict()
-            # results[(self.arm_strategy, self.play_bandit_args["algo"])] = (
-            #     arm_corrector(arm_played),
-            #     rewards,
-            # )
-            print("done")
-            # to_something_with_this_variable = arm_corrector(arm_played)
-
-            # TODO: investigate rewards and figure out which intervention is the best
+            # Post-process
+            self.results[temporal_index] = get_results(arm_played, rewards, mu)
+            #  Get index of the best arm
+            best_arm_idx = max(self.results[temporal_index]["frequency"], self.results[temporal_index]["frequency"].get)
+            # Get the corresponding intervention of that index e.g. {'Z': 0}
+            best_intervention = arm_setting[best_arm_idx]
 
             # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
 
@@ -121,7 +119,6 @@ class NSSCMMAB:
             # Don't assign the wrong stuff (non-boolean)
             assert all(val == 0 or val == 1 for val in optimal_node_setting.values())
 
-            # TODO: need to fix params in the SEM based on choices for this MAB
 
 
 def main():
