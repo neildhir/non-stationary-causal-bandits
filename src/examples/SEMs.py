@@ -1,4 +1,3 @@
-import numpy as np
 from collections import OrderedDict
 
 
@@ -54,7 +53,7 @@ class DynamicIVCD:
         )
 
     @staticmethod
-    def dynamic(clamped=None) -> dict:
+    def dynamic(blanket=None) -> dict:
         """
         Parameters
         ----------
@@ -67,12 +66,12 @@ class DynamicIVCD:
         # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
         return OrderedDict(
             {
-                # z_{t-1} (the 'clamped' part if it exists) --> Z <-- U_Z
+                # z_{t-1} (the 'clamped' part if it exists) ----- f_Z (transition function) ----> Z <-- U_Z
                 # TODO:if clamped is None the v["Z"][:,t-1] needs to be sampled? More importantly because v["Z"][:,t-1] is a PMF it needs to be sampled each time this functional SEM is called.
                 # ANSWER: it does need to sampled but that is done _before_ it passed to the clamped dictionary so that the value can just be used as is in here.
-                "Z": (lambda v: v["U_Z"] ^ (clamped["Z"])),
+                "Z": (lambda v: v["U_Z"] ^ (blanket["Z"])),
                 # x_{t-1} --> X <-- {U_X, U_XY, Z}
-                "X": (lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ (clamped["X"])),
+                "X": (lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ (blanket["X"])),
                 # TODO: note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
                 # y_{t-1} --> Y <-- {U_Y, U_XY, X}
                 "Y": (
@@ -80,7 +79,7 @@ class DynamicIVCD:
                     ^ v["U_Y"]  #  Remember that ^ (xor) is a bitwise operation
                     ^ v["U_XY"]
                     ^ v["X"]
-                    ^ (clamped["Y"])
+                    ^ (blanket["Y"])
                 ),
             }
         )

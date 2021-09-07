@@ -1,9 +1,7 @@
+from typing import OrderedDict
 from npsem.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret, compute_optimality
 import numpy as np
-
-
-def find_optimal_arm_probability(arm_played, mu_star):
-    return np.vectorize(lambda x: int(mu_star[x] == mu_star))(arm_played)
+from utils.sampling import sample_sem
 
 
 def get_results(arm_played, rewards, mu):
@@ -16,3 +14,29 @@ def get_results(arm_played, rewards, mu):
     results["frequency"] = dict(zip(unique, counts))
 
     return results
+
+
+def assign_blanket(
+    blanket: dict(dict),
+    temporal_index: int,
+    best_intervention: dict,
+    target_var_only: str,
+    target_value: float,
+    transition_funcs: dict = None,
+):
+
+    """
+    This whole routine needs to be a combination between SCM_to_bandit_machine and query00 of SCM.
+    """
+
+    assert isinstance(best_intervention, dict)
+
+    if best_intervention:
+        # Assign best intervention
+        for (key, value) in best_intervention.items():
+            blanket[temporal_index][key] = value
+
+    # Assign target value
+    blanket[temporal_index][target_var_only] = target_value
+
+    return blanket

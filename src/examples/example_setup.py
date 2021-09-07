@@ -28,6 +28,8 @@ def setup_DynamicIVCD():
 
         T = 3
 
+        assert len(confounders) == 3
+
         graph_view = make_graphical_model(
             start_time=0,
             stop_time=T - 1,

@@ -16,7 +16,7 @@ from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of
 from npsem.utils import subseq
 from src.examples.example_setup import setup_DynamicIVCD
 from src.utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
-from utils.postprocess import get_results
+from utils.postprocess import assign_blanket, get_results
 
 
 class NSSCMMAB:
@@ -48,9 +48,8 @@ class NSSCMMAB:
         sub_DAGs = get_time_slice_sub_graphs(G, self.T)
         # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, confounder_info)
-        sem = SEM()  #  Does not change throuhgout
-        self.static_sem = sem.static()
-        self.dynamic_sem = sem.dynamic()
+        self.sem = SEM()  #  Does not change throuhgout
+        nodes = self.sem.static_sem.keys()
 
         # TODO: option here if we want to use observational data to estimate the SEM or we assume we have access to the true SEM. Have so far coded up the transition part (see transitions.py) but it remains to do the emission part.
 
@@ -69,6 +68,9 @@ class NSSCMMAB:
         # Results
         self.results = {t: None for t in range(self.T)}
 
+        # Stores the intervention, and the downstream effect of the intervention, for each time-slice
+        self.blanket = {t: {key: None for key in nodes} for t in range(self.T)}
+
     # Play piece-wise stationary bandit
     def run(self):
 
@@ -84,8 +86,10 @@ class NSSCMMAB:
             # Create SCM
             self.SCMs[temporal_index] = StructuralCausalModel(
                 G=self.causal_diagrams[temporal_index],
-                F=self.static_sem if temporal_index == 0 else self.dynamic_sem(clamped=optimal_node_setting),
-                P_U=self.P_U,
+                F=self.sem.static_sem()
+                if temporal_index == 0
+                else self.sem.dynamic_sem(clamped=self.blanket[temporal_index - 1]),
+                P_U=self.P_U,  # TODO: check if this actually remains the same across time-slices
                 D=self.domains,
                 more_U=self.more_U,
             )
@@ -109,16 +113,22 @@ class NSSCMMAB:
             # Get the corresponding intervention of that index e.g. {'Z': 0}
             best_intervention = arm_setting[best_arm_idx]
 
-            # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
+            # Contains the optimal actions and corresponding output
 
-            # Clamp nodes corresponding to the best intervention
-            # TODO: need to update statistics for next time-step through the (possibly estimated if we are using observational data) transition functions (though this probably already happens in SCM_to_bandit_machine)
-            optimal_node_setting = {
-                var: val for var, val in zip(self.causal_diagrams[temporal_index].V, transition_function(arm_played))
-            }
-            # Don't assign the wrong stuff (non-boolean)
-            assert all(val == 0 or val == 1 for val in optimal_node_setting.values())
+            # TODO: current problem: we cannot use a continuous variable in the SEM which is what happens if we assign Y = mu[best_arm] (this is a continuous variable)
 
+            self.blanket[temporal_index] = assign_blanket(
+                self.blanket, temporal_index, best_intervention, target_var_only, mu[best_arm_idx]
+            )
+
+            # Contains the _transferred_ optimal actions and corresponding output
+            if self.transfer_functions:
+                transfer_node_setting = {key: None for key in self.sem_static.keys()}
+                transfer_node_setting = {
+                    var: self.transfer_function[temporal_index][var](val)
+                    for var, val in self.blanket[temporal_index].items()
+                    if self.blanket[temporal_index][var] is not None
+                }
 
 
 def main():
@@ -132,3 +142,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
+
+    # Clamp nodes corresponding to the best intervention
+    # TODO: need to update statistics for next time-step through the (possibly estimated if we are using observational data) transition functions (though this probably already happens in SCM_to_bandit_machine)
