@@ -6,6 +6,7 @@
 # =============================================
 
 
+from copy import deepcopy
 from networkx.classes import MultiDiGraph
 from numpy import vectorize
 from tqdm import trange
@@ -16,7 +17,8 @@ from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of
 from npsem.utils import subseq
 from src.examples.example_setup import setup_DynamicIVCD
 from src.utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
-from utils.postprocess import assign_blanket, get_results
+from src.utils.postprocess import assign_blanket, get_results
+from src.utils.transitions import fit_sem_hat_transition_functions, get_transition_pairs
 
 
 class NSSCMMAB:
@@ -38,20 +40,28 @@ class NSSCMMAB:
         horizon: int,
         n_trials: int,
         n_jobs: int,
+        observational_samples: dict = None,
         arm_strategy: str = "POMIS",
         bandit_algorithm: str = "TS",  # Assumes that within time-slice bandit is stationary
     ):
 
         self.T = G.total_time
+        time_slice_nodes = G.time_slice_manipulative_nodes
         # Extract all target variables from the causal graphical model
         self.all_target_variables = [s for s in G.nodes if s.startswith(base_target_variable)]
         sub_DAGs = get_time_slice_sub_graphs(G, self.T)
         # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, confounder_info)
-        self.sem = SEM()  #  Does not change throuhgout
-        nodes = self.sem.static_sem.keys()
 
-        # TODO: option here if we want to use observational data to estimate the SEM or we assume we have access to the true SEM. Have so far coded up the transition part (see transitions.py) but it remains to do the emission part.
+        if observational_samples:
+            # We use observed samples of the system to estimate the (discrete) structural equation model
+            self.transfer_pairs = get_transition_pairs(G)
+            self.transition_functions = fit_sem_hat_transition_functions(observational_samples, self.transfer_pairs)
+            # TODO: (1) add estimate for emission edges; (2) combine it all in a sem_hat like function
+        else:
+            # We use the true structural equation model in the absence of observational samples
+            self.transition_functions = None
+            self.sem = SEM()  #  Does not change throuhgout
 
         self.P_U = default_P_U(mu1)
         self.domains = {key: val["domain"] for key, val in node_info.items()}
@@ -69,7 +79,8 @@ class NSSCMMAB:
         self.results = {t: None for t in range(self.T)}
 
         # Stores the intervention, and the downstream effect of the intervention, for each time-slice
-        self.blanket = {t: {key: None for key in nodes} for t in range(self.T)}
+        self.blanket = {t: {key: None for key in time_slice_nodes} for t in range(self.T)}
+        self.empty_slice = {key: None for key in time_slice_nodes}
 
     # Play piece-wise stationary bandit
     def run(self):
@@ -86,9 +97,7 @@ class NSSCMMAB:
             # Create SCM
             self.SCMs[temporal_index] = StructuralCausalModel(
                 G=self.causal_diagrams[temporal_index],
-                F=self.sem.static_sem()
-                if temporal_index == 0
-                else self.sem.dynamic_sem(clamped=self.blanket[temporal_index - 1]),
+                F=self.sem.static() if temporal_index == 0 else self.sem.dynamic(clamped=clamped_nodes),
                 P_U=self.P_U,  # TODO: check if this actually remains the same across time-slices
                 D=self.domains,
                 more_U=self.more_U,
@@ -109,26 +118,35 @@ class NSSCMMAB:
             # Post-process
             self.results[temporal_index] = get_results(arm_played, rewards, mu)
             #  Get index of the best arm
-            best_arm_idx = max(self.results[temporal_index]["frequency"], self.results[temporal_index]["frequency"].get)
+            best_arm_idx = max(
+                self.results[temporal_index]["frequency"], key=self.results[temporal_index]["frequency"].get
+            )
             # Get the corresponding intervention of that index e.g. {'Z': 0}
             best_intervention = arm_setting[best_arm_idx]
 
             # Contains the optimal actions and corresponding output
-
-            # TODO: current problem: we cannot use a continuous variable in the SEM which is what happens if we assign Y = mu[best_arm] (this is a continuous variable)
-
             self.blanket[temporal_index] = assign_blanket(
-                self.blanket, temporal_index, best_intervention, target_var_only, mu[best_arm_idx]
+                self.SCMs[temporal_index],
+                deepcopy(self.empty_slice),
+                best_intervention,
+                target_var_only,
             )
 
-            # Contains the _transferred_ optimal actions and corresponding output
-            if self.transfer_functions:
-                transfer_node_setting = {key: None for key in self.sem_static.keys()}
-                transfer_node_setting = {
+            # Contains the _transferred_ (from t-1 to t) optimal actions and corresponding output
+            if self.transition_functions:
+                clamped_nodes = {
                     var: self.transfer_function[temporal_index][var](val)
                     for var, val in self.blanket[temporal_index].items()
                     if self.blanket[temporal_index][var] is not None
                 }
+                # Assign empty to nodes which were not assigned above
+                for node in self.blanket[temporal_index].keys() - (
+                    clamped_nodes.keys() & self.blanket[temporal_index].keys()
+                ):
+                    if node:
+                        clamped_nodes[node] = None
+            else:
+                clamped_nodes = self.blanket[temporal_index]
 
 
 def main():
@@ -144,6 +162,3 @@ if __name__ == "__main__":
     main()
 
     # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
-
-    # Clamp nodes corresponding to the best intervention
-    # TODO: need to update statistics for next time-step through the (possibly estimated if we are using observational data) transition functions (though this probably already happens in SCM_to_bandit_machine)

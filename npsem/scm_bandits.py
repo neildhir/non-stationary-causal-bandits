@@ -7,7 +7,9 @@ from npsem.utils import combinations
 from npsem.where_do import POMISs, MISs
 
 
-def SCM_to_bandit_machine(M: StructuralCausalModel, target_variable="Y") -> Tuple[Tuple, Dict[Union[int, Any], Dict]]:
+def SCM_to_bandit_machine(
+    M: StructuralCausalModel, target_variable="Y", verbose=False
+) -> Tuple[Tuple, Dict[Union[int, Any], Dict]]:
     G = M.G
     mu_per_arm = list()  # Expected reward per arm
     arm_setting = dict()
@@ -15,13 +17,13 @@ def SCM_to_bandit_machine(M: StructuralCausalModel, target_variable="Y") -> Tupl
     arm_id = 0
     for subset in all_subsets:
         # Domain here is assigned on the fly
-        # TODO: this is a rubbish construction for continuous variables
-        # TODO: pre-cache large multivariate domains. This is slow.
         for values in product(*[M.D[variable] for variable in subset]):
             #  E.g. Arm 1: do(X=1)
             arm_setting[arm_id] = dict(zip(subset, values))
             #  Get causal effect at this time-index (if dynamic SEM)
             result = M.query(outcome=(target_variable,), intervention=arm_setting[arm_id])
+            if verbose:
+                print("Intervention: {}\n".format(arm_setting[arm_id]), "Causal effect: {}\n".format(result))
             expectation = sum(y_val * result[(y_val,)] for y_val in M.D[target_variable])
             mu_per_arm.append(expectation)
             arm_id += 1

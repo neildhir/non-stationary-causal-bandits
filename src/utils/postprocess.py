@@ -1,7 +1,6 @@
-from typing import OrderedDict
 from npsem.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret, compute_optimality
+from npsem.model import StructuralCausalModel
 import numpy as np
-from utils.sampling import sample_sem
 
 
 def get_results(arm_played, rewards, mu):
@@ -16,27 +15,20 @@ def get_results(arm_played, rewards, mu):
     return results
 
 
-def assign_blanket(
-    blanket: dict(dict),
-    temporal_index: int,
-    best_intervention: dict,
-    target_var_only: str,
-    target_value: float,
-    transition_funcs: dict = None,
-):
-
-    """
-    This whole routine needs to be a combination between SCM_to_bandit_machine and query00 of SCM.
-    """
+def assign_blanket(M: StructuralCausalModel, blanket: dict, best_intervention: dict, target_var_only: str,) -> dict:
 
     assert isinstance(best_intervention, dict)
+
+    # Assign target value
+    causal_effect = M.query(outcome=(target_var_only,), intervention=best_intervention)
+    # Greedily pick the outcome value with the highest probability under the SCM model
+    blanket[target_var_only] = max(causal_effect, key=causal_effect.get)[0]
 
     if best_intervention:
         # Assign best intervention
         for (key, value) in best_intervention.items():
-            blanket[temporal_index][key] = value
+            blanket[key] = value
 
-    # Assign target value
-    blanket[temporal_index][target_var_only] = target_value
+    # XXX: note that nodes which are not in {outcome_var, interventions_vars} are _not_ assigned a value (currently). It is at present not clear what we should do with these variables. We could perhaps draw a sample from them and then use that.
 
     return blanket

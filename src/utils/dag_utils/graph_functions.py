@@ -178,6 +178,11 @@ def make_networkx_object(graph: Union[str, MultiDiGraph], node_information: dict
     # Add the total length of DBN as well so we don't need to add it later
     G.total_time = T
 
+    # Manipulative
+    G.time_slice_manipulative_nodes = [
+        var for var in node_information if node_information[var]["type"] == "manipulative"
+    ]
+
     if node_information:
         #  Sets what type of node each node is (manipulative, confounders, non-manipuatlive)
         ninfo = [node_information["_".join(node.split("_")[:-1])] for node in G.nodes]

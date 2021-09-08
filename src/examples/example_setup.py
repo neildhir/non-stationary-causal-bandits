@@ -60,6 +60,6 @@ def setup_DynamicIVCD():
             "confounder_info": confounders,
             "base_target_variable": "Y",
             "horizon": 1000,
-            "n_trials": 100,
+            "n_trials": 10,
             "n_jobs": 4,
         }
