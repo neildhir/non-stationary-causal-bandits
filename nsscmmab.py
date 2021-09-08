@@ -140,12 +140,6 @@ class NSSCMMAB:
                     for var, val in self.blanket[temporal_index].items()
                     if self.blanket[temporal_index][var] is not None
                 }
-                # Assign empty to nodes which were not assigned above
-                for node in self.blanket[temporal_index].keys() - (
-                    clamped_nodes.keys() & self.blanket[temporal_index].keys()
-                ):
-                    if node:
-                        clamped_nodes[node] = None
             else:
                 clamped_nodes = self.blanket[temporal_index]
 
