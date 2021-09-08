@@ -53,14 +53,14 @@ class NSSCMMAB:
         # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, confounder_info)
 
+        self.transition_functions = None
         if observational_samples:
             # We use observed samples of the system to estimate the (discrete) structural equation model
             self.transfer_pairs = get_transition_pairs(G)
             self.transition_functions = fit_sem_hat_transition_functions(observational_samples, self.transfer_pairs)
-            # TODO: (1) add estimate for emission edges; (2) combine it all in a sem_hat like function
+            # TODO: (1) add estimates for emission edges; (2) combine it all in a sem_hat like function
         else:
             # We use the true structural equation model in the absence of observational samples
-            self.transition_functions = None
             self.sem = SEM()  #  Does not change throuhgout
 
         self.P_U = default_P_U(mu1)
@@ -77,6 +77,8 @@ class NSSCMMAB:
 
         # Results
         self.results = {t: None for t in range(self.T)}
+        self.reward_distribution = deepcopy(self.results)
+        self.arm_setting = deepcopy(self.results)
 
         # Stores the intervention, and the downstream effect of the intervention, for each time-slice
         self.blanket = {t: {key: None for key in time_slice_nodes} for t in range(self.T)}
@@ -98,7 +100,7 @@ class NSSCMMAB:
             self.SCMs[temporal_index] = StructuralCausalModel(
                 G=self.causal_diagrams[temporal_index],
                 F=self.sem.static() if temporal_index == 0 else self.sem.dynamic(clamped=clamped_nodes),
-                P_U=self.P_U,  # TODO: check if this actually remains the same across time-slices
+                P_U=self.P_U,
                 D=self.domains,
                 more_U=self.more_U,
             )
@@ -117,6 +119,8 @@ class NSSCMMAB:
 
             # Post-process
             self.results[temporal_index] = get_results(arm_played, rewards, mu)
+            self.reward_distribution[temporal_index] = mu
+            self.arm_setting[temporal_index] = arm_setting
             #  Get index of the best arm
             best_arm_idx = max(
                 self.results[temporal_index]["frequency"], key=self.results[temporal_index]["frequency"].get
@@ -126,13 +130,10 @@ class NSSCMMAB:
 
             # Contains the optimal actions and corresponding output
             self.blanket[temporal_index] = assign_blanket(
-                self.SCMs[temporal_index],
-                deepcopy(self.empty_slice),
-                best_intervention,
-                target_var_only,
+                self.SCMs[temporal_index], deepcopy(self.empty_slice), best_intervention, target_var_only,
             )
 
-            # Contains the _transferred_ (from t-1 to t) optimal actions and corresponding output
+            # Contains the _transferred_ (from t-1 to t) optimal actions and corresponding output, computed before passed to SEM at next time step.
             if self.transition_functions:
                 clamped_nodes = {
                     var: self.transfer_function[temporal_index][var](val)
@@ -160,5 +161,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
