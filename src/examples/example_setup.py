@@ -55,7 +55,7 @@ def setup_DynamicIVCD():
         return {
             "G": G,
             "SEM": DynamicIVCD,
-            "mu1": mu1,  # Reward distribution
+            "mu1": mu1,
             "node_info": node_info,
             "confounder_info": confounders,
             "base_target_variable": "Y",

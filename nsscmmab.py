@@ -10,6 +10,7 @@ from copy import deepcopy
 from networkx.classes import MultiDiGraph
 from numpy import vectorize
 from tqdm import trange
+from scipy.stats import bernoulli
 
 from npsem.bandits import play_bandits
 from npsem.model import StructuralCausalModel, default_P_U
@@ -33,7 +34,7 @@ class NSSCMMAB:
         self,
         G: MultiDiGraph,  #  A dynamic Bayesian network
         SEM: classmethod,
-        mu1: dict,  # Reward distribution
+        mu1: dict,
         node_info: dict,  # Has to contain a domain key per manipulative variable
         confounder_info: dict,
         base_target_variable: str,
@@ -64,6 +65,7 @@ class NSSCMMAB:
             self.sem = SEM()  #  Does not change throuhgout
 
         self.P_U = default_P_U(mu1)
+        self.mu1 = mu1
         self.domains = {key: val["domain"] for key, val in node_info.items()}
         # Remains the same for all time-slices (just background variables)
         self.more_U = {key for key in node_info.keys() if key[0] == "U"}
@@ -129,9 +131,13 @@ class NSSCMMAB:
             best_intervention = arm_setting[best_arm_idx]
 
             # Contains the optimal actions and corresponding output
-            self.blanket[temporal_index] = assign_blanket(
-                self.SCMs[temporal_index], deepcopy(self.empty_slice), best_intervention, target_var_only,
+            self.blanket[temporal_index] = self._implement_intervention(
+                temporal_index, best_intervention, target_var_only
             )
+
+            # assign_blanket(
+            #     self.SCMs[temporal_index], deepcopy(self.empty_slice), best_intervention, target_var_only,
+            # )
 
             # Contains the _transferred_ (from t-1 to t) optimal actions and corresponding output, computed before passed to SEM at next time step.
             if self.transition_functions:
@@ -142,6 +148,50 @@ class NSSCMMAB:
                 }
             else:
                 clamped_nodes = self.blanket[temporal_index]
+
+    def _implement_intervention(self, temporal_index, best_intervention, target_var_only):
+
+        assert isinstance(best_intervention, dict)
+        blanket = deepcopy(self.empty_slice)
+
+        if best_intervention:
+            # Assign best intervention
+            for (key, value) in best_intervention.items():
+                blanket[key] = value
+            #  We could compute this in the main function but we don't since the order could change per time-slice
+            causal_order = {var: self.SCMs[temporal_index].G.causal_order().index(var) for var in blanket.keys()}
+
+            if len(best_intervention) == 1:
+                for key in best_intervention.keys():
+                    interv_idx = causal_order[key]
+            else:
+                raise NotImplementedError("The optimal intevention is multivariate. Have not thought about that yet.")
+
+            assigned = {var: bernoulli.rvs(self.mu1[var]) for var in self.mu1}
+            for V_i in self.SCMs[temporal_index].G.causal_order():
+                if V_i in best_intervention:
+                    assigned[V_i] = best_intervention[V_i]
+                else:
+                    assigned[V_i] = self.SCMs[temporal_index].F[V_i](assigned)
+
+            # # Take set symmetric difference between sets to get unassigned nodes.
+            # for var in blanket.keys() ^ best_intervention.keys():
+            #     if causal_order[var] > interv_idx:
+            #         pass
+            # else:
+            #     return blanket
+
+            # XXX: note that nodes which are not in {outcome_var, interventions_vars} are _not_ assigned a value (currently). It is at present not clear what we should do with these variables. We could perhaps draw a sample from them and then use that.
+        else:
+            # This is option exist for rare situations where the empty set (i.e. best_intervention = {}) is the best intervention.
+            return blanket
+
+        # Assign target value
+        causal_effect = M.query(outcome=(target_var_only,), intervention=best_intervention)
+        # Greedily pick the outcome value with the highest probability under the SCM model
+        # TODO: this is almost surely not correct, it should be the expected value OR more likely just the value of the SEM executed for the samples values of U plus the value of intervention. We probably also need to use the same samples of U throughout the whole process.
+        # TODO: this has the highest causal order so we should move it to the end of the recursion below.
+        blanket[target_var_only] = max(causal_effect, key=causal_effect.get)[0]
 
 
 def main():

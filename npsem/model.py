@@ -493,9 +493,7 @@ class StructuralCausalModel:
                 if V_i in intervention:
                     assigned[V_i] = intervention[V_i]
                 else:
-                    #  We can sample dynamic (stationary or non-stationary) SEMs as well as static ones.
                     assigned[V_i] = self.F[V_i](assigned)
-                    # TODO: we need to provide an option here to use the estimated SEM (F_hat) from observational data in lieu of the true SEM.
 
             if not all(assigned[V_i] == condition[V_i] for V_i in condition):
                 continue
