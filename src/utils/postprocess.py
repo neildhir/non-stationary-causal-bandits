@@ -1,6 +1,7 @@
 from npsem.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret, compute_optimality
 from npsem.model import StructuralCausalModel
 import numpy as np
+from scipy.stats import bernoulli
 
 
 def get_results(arm_played, rewards, mu):
@@ -53,3 +54,29 @@ def assign_blanket(M: StructuralCausalModel, blanket: dict, best_intervention: d
     else:
         # This is option exist for rare situations where the empty set (i.e. best_intervention = {}) is the best intervention.
         return blanket
+
+
+def implement_intervention(causal_order, F, mu1, best_intervention):
+    assert isinstance(best_intervention, dict)
+    assert (
+        len(best_intervention) == 1
+    ), "The optimal intevention is multivariate. Have not thought about that yet. Will deal with at a later stage."
+
+    for V_interv in best_intervention:
+        break
+    causal_order_idx = {var: causal_order.index(var) for var in causal_order}
+
+    # This will eventually be our assigned time-slice.
+    assigned = {key: bernoulli.rvs(success_prob) for (key, success_prob) in mu1.items()}
+    for V_i in causal_order:
+        #  We do not assign acausal nodes
+        if causal_order_idx[V_i] < causal_order_idx[V_interv]:
+            assigned[V_i] = None
+        else:
+            if V_i in best_intervention:
+                assigned[V_i] = best_intervention[V_i]
+            else:
+                assigned[V_i] = F[V_i](assigned)
+
+    return assigned
+
