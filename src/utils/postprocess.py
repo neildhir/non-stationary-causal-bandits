@@ -1,3 +1,4 @@
+from typing import OrderedDict
 from npsem.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret, compute_optimality
 import numpy as np
 from scipy.stats import bernoulli
@@ -15,7 +16,7 @@ def get_results(arm_played, rewards, mu):
     return results
 
 
-def implement_intervention(causal_order, F, mu1, intervention, acausal=False):
+def implement_intervention(causal_order: tuple, F: OrderedDict, mu1: dict, intervention: dict, acausal=False) -> dict:
     assert isinstance(intervention, dict)
     assert (
         len(intervention) == 1
@@ -27,18 +28,15 @@ def implement_intervention(causal_order, F, mu1, intervention, acausal=False):
         break
     causal_order_idx = {var: causal_order.index(var) for var in causal_order}
 
-    # This will eventually be our assigned time-slice.
+    # This is the assigned time-slice (a.k.a. 'blanket').
     assigned = {key: bernoulli.rvs(success_prob) for (key, success_prob) in mu1.items()}
     for V_i in causal_order:
-        #  We do not assign a-causal nodes
-        if causal_order_idx[V_i] < causal_order_idx[V_interv]:
+        #  We do not assign a-causal nodes if option is turned off
+        if causal_order_idx[V_i] < causal_order_idx[V_interv] and acausal is False:
             assigned[V_i] = None
         else:
             if V_i in intervention:
                 assigned[V_i] = intervention[V_i]
-            elif acausal:
-                # Assign a-causal nodes IF option invoked
-                assigned[V_i] = F[V_i](assigned)
             else:
                 assigned[V_i] = F[V_i](assigned)
 

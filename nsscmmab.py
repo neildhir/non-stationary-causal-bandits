@@ -58,7 +58,7 @@ class NSSCMMAB:
             # We use observed samples of the system to estimate the (discrete) structural equation model
             self.transfer_pairs = get_transition_pairs(G)
             self.transition_functions = fit_sem_hat_transition_functions(observational_samples, self.transfer_pairs)
-            # TODO: (1) add estimates for emission edges; (2) combine it all in a sem_hat like function
+            # TODO: (1) add estimates for emission edges; (2) combine it all in a sem_hat like function; (3) need to replace SCM.F with SCM.F_hat if option is invoked to use observational data.
         else:
             # We use the true structural equation model in the absence of observational samples
             self.sem = SEM()  #  Does not change throuhgout
@@ -83,6 +83,7 @@ class NSSCMMAB:
 
         # Stores the intervention, and the downstream effect of the intervention, for each time-slice
         self.blanket = {t: None for t in range(self.T)}
+        self.intervention = {t: None for t in range(self.T)}
         self.empty_slice = {V: None for V in time_slice_nodes}
 
     # Play piece-wise stationary SCM-MAB
@@ -128,6 +129,7 @@ class NSSCMMAB:
             )
             # Get the corresponding intervention of that index e.g. {'Z': 0}
             best_intervention = arm_setting[best_arm_idx]
+            self.intervention[temporal_index] = best_intervention
 
             # Contains the optimal actions and corresponding output
             self.blanket[temporal_index] = implement_intervention(
@@ -145,6 +147,9 @@ class NSSCMMAB:
                 }
             else:
                 clamped_nodes = self.blanket[temporal_index]
+
+            if temporal_index == 2:
+                print("braek")
 
 
 def main():

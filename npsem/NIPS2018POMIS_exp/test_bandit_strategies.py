@@ -42,6 +42,9 @@ def compute_cumulative_regret(rewards: np.ndarray, mu_star: float) -> np.ndarray
     cumulative_rewards = np.cumsum(rewards, axis=1)
     optimal_cumulative_rewards = np.cumsum(np.ones(rewards.shape) * mu_star, axis=1)
     cumulative_regret = optimal_cumulative_rewards - cumulative_rewards
+    assert all(cumulative_regret >= 0), "Rewards: {}; Cumulative rewards: {}; mu star: {}".format(
+        rewards, cumulative_rewards, mu_star
+    )
     return cumulative_regret
 
 

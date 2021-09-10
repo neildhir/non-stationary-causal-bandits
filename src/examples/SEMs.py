@@ -17,7 +17,7 @@ class DynamicIVCD:
     """
 
     @staticmethod
-    def static() -> dict:
+    def static() -> OrderedDict:
         """
         Parameters
         ----------
@@ -32,17 +32,19 @@ class DynamicIVCD:
         )
 
     @staticmethod
-    def dynamic(clamped: dict = None) -> dict:
+    def dynamic(clamped: dict = None) -> OrderedDict:
         """
         Parameters
         ----------
         clamped: clamped (fixed) variables from the previous time-step (type: dict)
 
+        # Note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
+
         Lambda function input parameters
         --------------------------------
         v: SCM variables (endogenous and exogenous)
         """
-        # TODO: what do we do with un-played arms (i.e. nodes) --  are they fixed too?
+
         return OrderedDict(
             {
                 # f_Z(z_{t-1}) [the 'clamped' part if it exists, where f_Z is the transition function] --> Z <-- U_Z
@@ -51,7 +53,6 @@ class DynamicIVCD:
                 "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"]
                 if clamped["X"] is None
                 else v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"],
-                # XXX: note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
                 # f_Y(y_{t-1}) --> Y <-- {U_Y, U_XY, X}
                 "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"]
                 if clamped["Y"] is None
