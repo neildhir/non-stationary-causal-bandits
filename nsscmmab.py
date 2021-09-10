@@ -85,7 +85,7 @@ class NSSCMMAB:
         self.blanket = {t: None for t in range(self.T)}
         self.empty_slice = {V: None for V in time_slice_nodes}
 
-    # Play piece-wise stationary bandit
+    # Play piece-wise stationary SCM-MAB
     def run(self):
 
         # Walk through the graph, from left to right, i.e. the temporal dimension
@@ -138,6 +138,7 @@ class NSSCMMAB:
             if self.transition_functions:
                 clamped_nodes = deepcopy(self.empty_slice)
                 clamped_nodes = {
+                    # TODO: need to index with transfer-pairs
                     var: self.transfer_function[temporal_index][var](val)
                     for var, val in self.blanket[temporal_index].items()
                     if self.blanket[temporal_index][var] is not None or var.startswith("U")
