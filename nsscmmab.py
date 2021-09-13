@@ -7,6 +7,8 @@
 
 
 from copy import deepcopy
+from npsem.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret
+from npsem.NIPS2018POMIS_exp.scm_examples import IV_SCM
 from networkx.classes import MultiDiGraph
 from numpy import vectorize
 from tqdm import trange
@@ -149,7 +151,7 @@ class NSSCMMAB:
                 clamped_nodes = self.blanket[temporal_index]
 
             if temporal_index == 2:
-                print("braek")
+                print("Hi")
 
 
 def main():

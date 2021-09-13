@@ -38,14 +38,17 @@ def compute_optimality(arm_played, mu):
     return np.vectorize(lambda x: int(mu[x] == mu_star))(arm_played)
 
 
-def compute_cumulative_regret(rewards: np.ndarray, mu_star: float) -> np.ndarray:
+def compute_cumulative_regret(rewards: np.ndarray, mu_star: float, remove_negative_cr: bool) -> np.ndarray:
     cumulative_rewards = np.cumsum(rewards, axis=1)
     optimal_cumulative_rewards = np.cumsum(np.ones(rewards.shape) * mu_star, axis=1)
-    cumulative_regret = optimal_cumulative_rewards - cumulative_rewards
-    assert all(cumulative_regret >= 0), "Rewards: {}; Cumulative rewards: {}; mu star: {}".format(
-        rewards, cumulative_rewards, mu_star
+    # Cumulative regret
+    cr = optimal_cumulative_rewards - cumulative_rewards
+    if remove_negative_cr:
+        cr = cr[cr >= 0]
+    assert (cr >= 0).all(), "\nRewards: {}\n Cumulative regret: {}\nmu star: {}\n Locations: {}".format(
+        rewards.tolist(), cr.round(2), mu_star, np.where(cr < 0)
     )
-    return cumulative_regret
+    return cr
 
 
 def load_result(directory):
