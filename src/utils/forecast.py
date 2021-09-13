@@ -14,3 +14,4 @@ def make_conditional_bernoulli(trans_mat: ndarray):
     assert all([x == 1 for x in trans_mat.sum(axis=1)])
     transmat = {val: row for val, row in zip(range(len(trans_mat), trans_mat))}
     return vectorize(lambda val: bernoulli.rvs(p=transmat[val], size=1))
+

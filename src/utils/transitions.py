@@ -4,7 +4,7 @@ from networkx.classes.multidigraph import MultiDiGraph
 
 
 def get_transition_pairs(dag: MultiDiGraph) -> dict:
-    #  Parents of all nodes
+    #  Parents of all nodes, but excluding confounders and background nodes
     node_parents = {node: None for node in dag.nodes if node[0] != "U"}
     for node in node_parents:
         node_parents[node] = tuple([node for node in dag.predecessors(node) if node[0] != "U"])
@@ -26,15 +26,15 @@ def get_transition_pairs(dag: MultiDiGraph) -> dict:
 
 def fit_trans_mat(obs):
     unique_values, value_counts = np.unique(obs, return_counts=True, axis=0)
-    n = len(unique_values)
+    n = int(len(unique_values))
     assert n % 2 == 0, "There are not an even number of unique rows."
-    m = np.sqrt(len(unique_values))
+    m = np.sqrt(n).astype(int)
     M = value_counts.reshape((m, m))
     row_sums = M.sum(axis=1, keepdims=True)
     return M / row_sums
 
 
-def fit_sem_hat_transition_functions(observational_samples, transfer_pairs: dict) -> dict:
+def fit_transition_functions(observational_samples, transfer_pairs: dict) -> dict:
 
     # Store function which concern t-1 --> t
     transition_functions = {}
@@ -48,6 +48,7 @@ def fit_sem_hat_transition_functions(observational_samples, transfer_pairs: dict
             in_time = int(input_vars[0].split("_")[1])
             # Transfer target
             output = transfer_pairs[input_vars]
+            assert len(output) == 1, "Have not implemented many-to-one transfer maps yet."
             out_var = output.split("_")[0]
             out_time = int(output.split("_")[1])
 

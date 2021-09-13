@@ -20,7 +20,8 @@ from npsem.utils import subseq
 from src.examples.example_setup import setup_DynamicIVCD
 from src.utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
 from src.utils.postprocess import implement_intervention, get_results
-from src.utils.transitions import fit_sem_hat_transition_functions, get_transition_pairs
+from src.utils.transitions import fit_transition_functions, get_transition_pairs
+from utils.emissions import fit_emission_functions, get_emission_pairs
 
 
 class NSSCMMAB:
@@ -47,6 +48,8 @@ class NSSCMMAB:
         bandit_algorithm: str = "TS",  # Assumes that within time-slice bandit is stationary
     ):
 
+        # TODO: write base class
+
         self.T = G.total_time
         time_slice_nodes = G.time_slice_manipulative_nodes
         # Extract all target variables from the causal graphical model
@@ -59,8 +62,9 @@ class NSSCMMAB:
         if observational_samples:
             # We use observed samples of the system to estimate the (discrete) structural equation model
             self.transfer_pairs = get_transition_pairs(G)
-            self.transition_functions = fit_sem_hat_transition_functions(observational_samples, self.transfer_pairs)
-            # TODO: (1) add estimates for emission edges; (2) combine it all in a sem_hat like function; (3) need to replace SCM.F with SCM.F_hat if option is invoked to use observational data.
+            self.emission_pairs = get_emission_pairs(G)
+            self.transition_functions = fit_transition_functions(observational_samples, self.transfer_pairs)
+            self.emission_functions = fit_emission_functions(observational_samples, self.transfer_pairs)
         else:
             # We use the true structural equation model in the absence of observational samples
             self.sem = SEM()  #  Does not change throuhgout
