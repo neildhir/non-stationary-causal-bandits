@@ -5,7 +5,7 @@ class DynamicIVCD:
     """
     Dynamic Instrumental Variable Structural equation model.
 
-    Adapted from from task 3 (experimental section): Structural Causal Bandits: Where to Intervene?
+    Adapted from from task 3 (experimental section): 'Structural Causal Bandits: Where to Intervene?'
 
     Note that the dictionary returned respects the causal ordering of each time-slice in the graph.
 
@@ -32,7 +32,7 @@ class DynamicIVCD:
         )
 
     @staticmethod
-    def static_vec() -> dict:
+    def static_vec() -> OrderedDict:
         """
         Parameters
         ----------
@@ -105,7 +105,7 @@ class DynamicIVCD:
                 # y_{t-1} --> Y <-- {U_Y, U_XY, X}
                 "Y": (
                     lambda v, t: 1
-                    ^ v["U_Y"][:, t]  #  Remember that ^ (xor) is a bitwise operation
+                    ^ v["U_Y"][:, t]
                     ^ v["U_XY"][:, t]
                     ^ v["X"][:, t]
                     ^ (v["Y"][:, t - 1] if clamped is None else clamped["Y"])

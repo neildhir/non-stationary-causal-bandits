@@ -1,10 +1,9 @@
 import numpy as np
-from collections import OrderedDict
 from scipy.stats import bernoulli
 
 
 def sample_sem(
-    sem, exogenous_and_confounder_probs: dict, timesteps: int, sample_size: int, seed=None,
+    sem, exogenous_and_confounder_probs: dict, timesteps: int, sample_size: int, seed=0,
 ):
     """
     Draw sample(s) from given structural equation model under steady-state condition (i.e. we do not fix any nodes as we walk along the graph).
@@ -26,7 +25,7 @@ def sample_sem(
         np.random.seed(seed)
 
     # Pre-allocate the sample container
-    empty_samples = OrderedDict({k: np.empty((sample_size, timesteps), dtype="int") for k in static.keys()})
+    empty_samples = {k: np.empty((sample_size, timesteps), dtype="int") for k in static.keys()}
     background_samples = sample_binary_exogenous_and_confounders(
         exogenous_and_confounder_probs, N=sample_size, T=timesteps
     )
