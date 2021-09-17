@@ -32,6 +32,24 @@ class DynamicIVCD:
         )
 
     @staticmethod
+    def static_vec() -> dict:
+        """
+        Parameters
+        ----------
+        SCM variables: v
+        noise: e
+        time index: t
+        """
+
+        return OrderedDict(
+            {
+                "Z": lambda v, t: v["U_Z"][:, t],
+                "X": lambda v, t: v["U_X"][:, t] ^ v["U_XY"][:, t] ^ v["Z"][:, t],
+                "Y": lambda v, t: 1 ^ v["U_Y"][:, t] ^ v["U_XY"][:, t] ^ v["X"][:, t],
+            }
+        )
+
+    @staticmethod
     def dynamic(clamped: dict = None) -> OrderedDict:
         """
         Parameters
@@ -62,24 +80,6 @@ class DynamicIVCD:
         )
 
     @staticmethod
-    def static_vec() -> dict:
-        """
-        Parameters
-        ----------
-        SCM variables: v
-        noise: e
-        time index: t
-        """
-
-        return OrderedDict(
-            {
-                "Z": lambda v, t: v["U_Z"][:, t],
-                "X": lambda v, t: v["U_X"][:, t] ^ v["U_XY"][:, t] ^ v["Z"][:, t],
-                "Y": lambda v, t: 1 ^ v["U_Y"][:, t] ^ v["U_XY"][:, t] ^ v["X"][:, t],
-            }
-        )
-
-    @staticmethod
     def dynamic_vec(clamped=None) -> dict:
         """
         Parameters
@@ -94,8 +94,6 @@ class DynamicIVCD:
         return OrderedDict(
             {
                 # z_{t-1} (the 'clamped' part if it exists) --> Z <-- U_Z
-                # TODO:if clamped is None the v["Z"][:,t-1] needs to be sampled? More importantly because v["Z"][:,t-1] is a PMF it needs to be sampled each time this functional SEM is called.
-                # ANSWER: it does need to sampled but that is done _before_ it passed to the clamped dictionary so that the value can just be used as is in here.
                 "Z": (lambda v, t: v["U_Z"][:, t] ^ (v["Z"][:, t - 1] if clamped is None else clamped["Z"])),
                 # x_{t-1} --> X <-- {U_X, U_XY, Z}
                 "X": (
@@ -104,7 +102,6 @@ class DynamicIVCD:
                     ^ v["Z"][:, t]
                     ^ (v["X"][:, t - 1] if clamped is None else clamped["X"])
                 ),
-                # TODO: note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
                 # y_{t-1} --> Y <-- {U_Y, U_XY, X}
                 "Y": (
                     lambda v, t: 1

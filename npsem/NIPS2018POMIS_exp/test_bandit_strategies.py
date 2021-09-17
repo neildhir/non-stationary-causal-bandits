@@ -45,9 +45,9 @@ def compute_cumulative_regret(rewards: np.ndarray, mu_star: float, remove_negati
     cr = optimal_cumulative_rewards - cumulative_rewards
     if remove_negative_cr:
         cr = cr[cr >= 0]
-    assert (cr >= 0).all(), "\nRewards: {}\n Cumulative regret: {}\nmu star: {}\n Locations: {}".format(
-        rewards.tolist(), cr.round(2), mu_star, np.where(cr < 0)
-    )
+    # assert (cr >= 0).all(), "\nRewards: {}\n Cumulative regret: {}\nmu star: {}\n Locations: {}".format(
+    #     rewards.tolist(), cr.round(2), mu_star, np.where(cr < 0)
+    # )
     return cr
 
 

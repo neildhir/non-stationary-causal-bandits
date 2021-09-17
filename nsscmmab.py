@@ -58,14 +58,18 @@ class NSSCMMAB:
         # Causal diagrams used for making SCMs upon which bandit algo acts
         self.causal_diagrams = make_time_slice_causal_diagrams(sub_DAGs, confounder_info)
 
-        self.transition_functions = None
         if observational_samples:
             # We use observed samples of the system to estimate the (discrete) structural equation model
             self.transfer_pairs = get_transition_pairs(G)
             self.emission_pairs = get_emission_pairs(G)
             self.transition_functions = fit_transition_functions(observational_samples, self.transfer_pairs)
-            self.emission_functions = fit_emission_functions(observational_samples, self.transfer_pairs)
+            self.emission_functions = fit_emission_functions(observational_samples, self.emission_pairs)
+            # TODO: need a sem_hat function to put it all together
+            #  XXX: we can write two version of the estimation, one which uses samples from the whole graph or another which uses only the measured variables (and so does not have any idea about the background model or the confounders). This labours under two different assumptions:
+            # 1. We can measure the background variables (but if we can do that, then they are not really background variables)
+            # 2. We cannot measure them in which case we can only model the interaction on the manipulative and non-manipulative variables.
         else:
+            self.transition_functions = None
             # We use the true structural equation model in the absence of observational samples
             self.sem = SEM()  #  Does not change throuhgout
 
@@ -151,6 +155,7 @@ class NSSCMMAB:
                     for var, val in self.blanket[temporal_index].items()
                     if self.blanket[temporal_index][var] is not None or var.startswith("U")
                 }
+                # TODO: add emission functions too
             else:
                 clamped_nodes = self.blanket[temporal_index]
 
