@@ -114,28 +114,9 @@ class DynamicIVCD:
         )
 
 
-class test:
-    """
-    Dynamic Instrumental Variable Structural equation model.
-
-    Adapted from from task 3 (experimental section): 'Structural Causal Bandits: Where to Intervene?'
-
-    Note that the dictionary returned respects the causal ordering of each time-slice in the graph.
-
-    Notes
-    -----
-    1. ^ is the XOR operator used to model binary interactions (remember that ^ (xor) is a bitwise operation)
-    2. The discrete white noise definition is quite similar to the continuous noise definition, meaning that it has mean zero (constant), and its variance is also constant (nonzero), and there's no autocorrelation
-    3. U_XY is the confounding variable between X and Y
-    """
-
+class testSEM:
     @staticmethod
     def static() -> OrderedDict:
-        """
-        Parameters
-        ----------
-        v: SCM variables
-        """
         return OrderedDict(
             {
                 "Z": lambda v: v["U_Z"],
@@ -145,32 +126,12 @@ class test:
         )
 
     @staticmethod
-    def dynamic(clamped: dict = None) -> OrderedDict:
-        """
-        Parameters
-        ----------
-        clamped: clamped (fixed) variables from the previous time-step (type: dict)
-
-        # Note that the time operator theorem from DCBO says that the previous target value y_{t-1} necessarily needs to be _added_ to the current value but here we are _not_ doing that. Currently not sure about the implications of that.
-
-        Lambda function input parameters
-        --------------------------------
-        v: SCM variables (endogenous and exogenous)
-        """
-
+    def dynamic(past: dict) -> OrderedDict:
         return OrderedDict(
             {
-                # f_Z(z_{t-1}) [the 'clamped' part if it exists, where f_Z is the transition function] --> Z <-- U_Z
-                "Z": lambda v: v["U_Z"] if clamped["Z"] is None else v["U_Z"] ^ clamped["Z"],
-                # f_X(x_{t-1}) --> X <-- {U_X, U_XY, Z}
-                "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"]
-                if clamped["X"] is None
-                else v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"],
-                # f_Y(y_{t-1}) --> Y <-- {U_Y, U_XY, X}
-                "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"]
-                if clamped["Y"] is None
-                else 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ clamped["Y"],
-                #
+                "Z": lambda v: v["U_Z"] ^ past["Z"],
+                "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ past["X"],
+                "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ past["Y"],
             }
         )
 

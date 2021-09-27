@@ -31,6 +31,33 @@ def SCM_to_bandit_machine(
     return tuple(mu_per_arm), arm_setting
 
 
+def conditional_SCM_to_bandit_machine(
+    M: StructuralCausalModel, target_variable="Y", past_intervention=None, verbose=False
+) -> Tuple[Tuple, Dict[Union[int, Any], Dict]]:
+    G = M.G
+    mu_per_arm = list()  # Expected reward per arm
+    arm_setting = dict()
+    # If using POMIS then these are all the same
+    all_subsets = list(combinations(sorted(G.V - {target_variable})))
+    arm_id = 0
+    for subset in all_subsets:
+        # Domain here is assigned on the fly
+        for values in product(*[M.D[variable] for variable in subset]):
+            #  E.g. Arm 1: do(X=1)
+            arm_setting[arm_id] = dict(zip(subset, values))
+            #  Get causal effect at this time-index (if dynamic SEM)
+            result = M.query(
+                outcome=(target_variable,), past_intervention=past_intervention, intervention=arm_setting[arm_id]
+            )
+            if verbose:
+                print("Intervention: {}\n".format(arm_setting[arm_id]), "Causal effect: {}\n".format(result))
+            expectation = sum(y_val * result[(y_val,)] for y_val in M.D[target_variable])
+            mu_per_arm.append(expectation)
+            arm_id += 1
+
+    return tuple(mu_per_arm), arm_setting
+
+
 def arm_types():
     return ["POMIS", "MIS", "Brute-force", "All-at-once"]
 

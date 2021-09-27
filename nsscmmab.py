@@ -109,8 +109,9 @@ class NSSCMMAB:
 
             # Create SCM
             self.SCMs[temporal_index] = StructuralCausalModel(
+                tix=temporal_index,
                 G=self.causal_diagrams[temporal_index],
-                F=self.sem.static() if temporal_index == 0 else self.sem.dynamic(clamped=clamped_nodes),
+                F=self.sem,  # .static() if temporal_index == 0 else self.sem.dynamic(clamped=clamped_nodes),
                 P_U=self.P_U,
                 D=self.domains,
                 more_U=self.more_U,
