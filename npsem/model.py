@@ -482,7 +482,6 @@ class StructuralCausalModel:
         normalizer = 0
 
         # Multivariate domain found on the fly
-        # TODO: pre-cache large multivariate domains. This is slow.
         for u in product(*[D[U_i] for U_i in U]):  # d^|U|
             assigned = dict(zip(U, u))
             p_u = P_U(assigned)

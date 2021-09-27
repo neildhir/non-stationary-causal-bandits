@@ -7,8 +7,6 @@
 
 
 from copy import deepcopy
-from npsem.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret
-from npsem.NIPS2018POMIS_exp.scm_examples import IV_SCM
 from networkx.classes import MultiDiGraph
 from numpy import vectorize
 from tqdm import trange
@@ -68,6 +66,7 @@ class NSSCMMAB:
             #  XXX: we can write two version of the estimation, one which uses samples from the whole graph or another which uses only the measured variables (and so does not have any idea about the background model or the confounders). This labours under two different assumptions:
             # 1. We can measure the background variables (but if we can do that, then they are not really background variables)
             # 2. We cannot measure them in which case we can only model the interaction on the manipulative and non-manipulative variables.
+            self.sem = make_sem_hat()
         else:
             self.transition_functions = None
             # We use the true structural equation model in the absence of observational samples
