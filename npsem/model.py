@@ -458,9 +458,7 @@ class StructuralCausalModel:
         self.more_U = set() if more_U is None else set(more_U)
         self.query00 = functools.lru_cache(1024)(self.query00)
 
-    def query(
-        self, tix, outcome: Tuple, condition: dict = None, intervention: dict = None, verbose=False,
-    ) -> defaultdict:
+    def query(self, outcome: Tuple, condition: dict = None, intervention: dict = None, verbose=False,) -> defaultdict:
         if condition is None:
             condition = dict()
         if intervention is None:
@@ -468,10 +466,7 @@ class StructuralCausalModel:
         new_condition = tuple(sorted([(x, y) for x, y in condition.items()]))
         new_intervention = tuple(sorted([(x, y) for x, y in intervention.items()]))
 
-        # return self.query00(outcome=outcome, condition=new_condition, intervention=new_intervention, verbose=verbose)
-        return self.test_query(
-            temporal_index=tix, outcome=outcome, condition=new_condition, intervention=new_intervention, verbose=verbose
-        )
+        return self.query00(outcome=outcome, condition=new_condition, intervention=new_intervention, verbose=verbose)
 
     def query00(self, outcome: Tuple, condition: Tuple, intervention: Tuple, verbose=False) -> defaultdict:
 
@@ -510,99 +505,72 @@ class StructuralCausalModel:
         else:
             return defaultdict(lambda: np.nan)  # nan or 0?
 
-    def query01(
-        self, outcome: Tuple, condition: Tuple, interventions: list, functions: list, verbose=False
+    def new_query(
+        self, outcome: Tuple, condition: dict = None, interventions: dict = None, verbose=False,
     ) -> defaultdict:
+        # TODO: remove this eventually
+        if condition is None:
+            condition = dict()
+        new_condition = tuple(sorted([(x, y) for x, y in condition.items()]))
+
+        return self.query01(outcome=outcome, condition=new_condition, interventions=interventions, verbose=verbose)
+
+    def query01(self, outcome: Tuple, condition: Tuple, interventions: list, verbose=False) -> defaultdict:
         """Finds expectation after a sequence of interventions."""
 
         condition = dict(condition)
-        prob_outcome = defaultdict(lambda: 0)
         U = list(sorted(self.G.U | self.more_U))
-        D = self.D  # Intervention domain
+        D = self.D
         P_U = self.P_U
         V_ordered = self.G.causal_order()
         if verbose:
             print(f"ORDER: {V_ordered}")
-        normalizer = 0
 
-        assert len(interventions) == len(functions)
+        T = len(interventions)
+        assign_store = {t: [] for t in range(T)}
 
-        for t, (intervention, func) in enumerate(zip(interventions, functions)):
+        for t, intervention in enumerate(interventions):
             if verbose:
-                print("\n >>>", t, intervention, func)
-            F = func if t == 0 else F = func(assigned)
-            for u in product(*[D[U_i] for U_i in U]):
-                assigned = dict(zip(U, u))
-                p_u = P_U(assigned)
-                assigned = self._assign(assigned, intervention, F)
-                normalizer += p_u
-                prob_outcome[tuple(assigned[V_i] for V_i in outcome)] += p_u
+                print("\n >>>", t, intervention)
 
-        if prob_outcome:
-            # normalize by prob condition
-            return defaultdict(lambda: 0, {k: v / normalizer for k, v in prob_outcome.items()})
-        else:
-            return defaultdict(lambda: np.nan)  # nan or 0?
+            if t == 0:
+                normalizer = 0
+                prob_outcome = defaultdict(lambda: 0)
+                F = self.F.static()
+                for u in product(*[D[U_i] for U_i in U]):  # d^|U|
 
-    def test_query(self, temporal_index: int, outcome: Tuple, condition: Tuple, intervention: Tuple, verbose=False):
-
-        condition = dict(condition)
-        intervention = dict(intervention)
-        U = list(sorted(self.G.U | self.more_U))  # This | is the set union operator.
-        D = self.D  # Intervention domain
-        P_U = self.P_U
-        self.V_ordered = self.G.causal_order()
-        if verbose:
-            print(f"ORDER: {self.V_ordered}")
-
-        all_U = product(*[D[U_i] for U_i in U])
-
-        if temporal_index == 0:
-
-            prob_outcome = defaultdict(lambda: 0)
-            normalizer = 0
-
-            F = self.F.static()
-
-            for u in all_U:
-                assigned = dict(zip(U, u))
-                p_u = P_U(assigned)
-                if p_u == 0:
-                    continue
-                assigned = self._assign(assigned, intervention, F)
-                if not all(assigned[V_i] == condition[V_i] for V_i in condition):
-                    continue
-                normalizer += p_u
-                prob_outcome[tuple(assigned[V_i] for V_i in outcome)] += p_u
-
-        else:
-
-            prob_outcome = defaultdict(lambda: 0)
-            normalizer = 0
-
-            for tt in range(temporal_index):
-
-                if tt == 0:
-                    F = self.F.static()
-                else:
-                    F = self.F.dynamic(assigned)
-
-                for u in all_U:
                     assigned = dict(zip(U, u))
-                    # This F below here is going to change to dynamic after first loop
-                    assigned = self._assign(assigned, intervention[tt], F)
-                    F = self.F.dynamic(assigned)
-                    for u in all_U:
+                    p_u = P_U(assigned)
+                    assigned = self._assign(assigned, intervention, F)
+                    if not all(assigned[V_i] == condition[V_i] for V_i in condition):
+                        continue
+                    normalizer += p_u
+                    prob_outcome[tuple(assigned[V_i] for V_i in outcome)] += p_u
+
+                    if T > 1:
+                        #  Only passing forward manipulative and reward variables, no exogenous
+                        # TODO: make this into a function
+                        assign_store[t].append(dict((k, assigned[k]) for k in V_ordered if k in assigned))
+            else:
+                # normalizer = 0
+                # prob_outcome = defaultdict(lambda: 0)
+                # TODO: make this into a function (removes duplicates dicts from list)
+                for past_assigned in [dict(t) for t in {tuple(d.items()) for d in assign_store[t - 1]}]:
+                    F = self.F.dynamic(past_assigned)  #  This is the dynamic part function with params from the past
+                    for u in product(*[D[U_i] for U_i in U]):
+
                         assigned = dict(zip(U, u))
                         p_u = P_U(assigned)
-                        if p_u == 0:
-                            continue
-                        assigned = self._assign(assigned, intervention[tt + 1], F)
+                        assigned = self._assign(assigned, intervention, F)
                         if not all(assigned[V_i] == condition[V_i] for V_i in condition):
                             continue
                         normalizer += p_u
                         prob_outcome[tuple(assigned[V_i] for V_i in outcome)] += p_u
 
+                        if T - 1 != t:
+                            #  Only passing forward manipulative and reward variables, no exogenous
+                            # TODO: make this into a function
+                            assign_store[t].append(dict((k, assigned[k]) for k in V_ordered if k in assigned))
         if prob_outcome:
             # normalize by prob condition
             return defaultdict(lambda: 0, {k: v / normalizer for k, v in prob_outcome.items()})

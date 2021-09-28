@@ -28,31 +28,27 @@ def SCM_to_bandit_machine(M: StructuralCausalModel, target_variable="Y") -> Tupl
 
 
 def test_SCM_to_bandit_machine(
-    tix: int, M: StructuralCausalModel, interventions: dict = None, target_variable="Y"
+    M: StructuralCausalModel, interventions: list = None, reward_variable: str = "Y",
 ) -> Tuple[Tuple, Dict[Union[int, Any], Dict]]:
+
     G = M.G
     mu_per_arm = list()  # Expected reward per arm
-    if tix == 0:
-        arm_setting = dict()
-        assert not interventions
-    else:
-        assert interventions
-        assert isinstance(interventions, list)
-
-    all_subsets = list(combinations(sorted(G.V - {target_variable})))
+    arm_setting = dict()
+    all_subsets = list(combinations(sorted(G.V - {reward_variable})))
     arm_id = 0
+
     for subset in all_subsets:
-        # Domain here is assigned on the fly
         for values in product(*[M.D[variable] for variable in subset]):
-            #  E.g. Arm 1: do(X=1)
             arm_setting[arm_id] = dict(zip(subset, values))
-            #  Get causal effect at this time-index (if dynamic SEM)
-            if tix == 0:
-                result = M.query(tix=tix, outcome=(target_variable,), intervention=arm_setting[arm_id])
+            if interventions:
+                result = M.new_query(
+                    outcome=(reward_variable,), interventions=interventions.append(arm_setting[arm_id])
+                )
+                # Remove this intervention from the list of interventions to maintain order
+                del interventions[-1]
             else:
-                interventions[tix] = arm_setting[arm_id]
-                result = M.query(tix=tix, outcome=(target_variable,), intervention=interventions)
-            expectation = sum(y_val * result[(y_val,)] for y_val in M.D[target_variable])
+                result = M.query(outcome=(reward_variable,), intervention=arm_setting[arm_id])
+            expectation = sum(y_val * result[(y_val,)] for y_val in M.D[reward_variable])
             mu_per_arm.append(expectation)
             arm_id += 1
 
