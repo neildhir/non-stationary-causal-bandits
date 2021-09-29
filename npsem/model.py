@@ -557,10 +557,9 @@ class StructuralCausalModel:
 
             else:
                 normalizer = 0
+                prob_outcome = defaultdict(lambda: 0)
                 past_assignees = remove_duplicate_dicts(assign_store[t - 1])
-                prob_outcome = {i: defaultdict(lambda: 0) for i in range(len(past_assignees))}
-                for i, past_assigned in enumerate(past_assignees):
-                    print(past_assigned)
+                for past_assigned in past_assignees:
                     F = self.F.dynamic(past_assigned)
                     for u in product(*[D[U_i] for U_i in U]):
 
@@ -570,13 +569,11 @@ class StructuralCausalModel:
                         if not all(assigned[V_i] == condition[V_i] for V_i in condition):
                             continue
                         normalizer += p_u
-                        prob_outcome[i][tuple(assigned[V_i] for V_i in outcome)] += p_u
+                        prob_outcome[tuple(assigned[V_i] for V_i in outcome)] += p_u
 
                         if T - 1 != t:
-                            #  Only passing forward manipulative and reward variables, no exogenous
+                            # Only passing forward manipulative and reward variables, no exogenous
                             assign_store[t].append(remove_exo(self.V_ordered, assigned))
-
-                    print(prob_outcome[i])
 
                 print(t, intervention, prob_outcome)
 

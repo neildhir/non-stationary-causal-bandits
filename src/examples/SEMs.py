@@ -129,7 +129,7 @@ class testSEM:
     def dynamic(past: dict) -> OrderedDict:
         return OrderedDict(
             {
-                "Z": lambda v: v["U_Z"] & past["Z"],
+                "Z": lambda v: v["U_Z"] ^ past["Z"],
                 "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"] & past["X"],
                 "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] & past["Y"],
             }
