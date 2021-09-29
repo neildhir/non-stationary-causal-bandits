@@ -27,7 +27,7 @@ def SCM_to_bandit_machine(M: StructuralCausalModel, target_variable="Y") -> Tupl
     return tuple(mu_per_arm), arm_setting
 
 
-def test_SCM_to_bandit_machine(
+def new_SCM_to_bandit_machine(
     M: StructuralCausalModel, interventions: list = None, reward_variable: str = "Y",
 ) -> Tuple[Tuple, Dict[Union[int, Any], Dict]]:
 
@@ -36,16 +36,14 @@ def test_SCM_to_bandit_machine(
     arm_setting = dict()
     all_subsets = list(combinations(sorted(G.V - {reward_variable})))
     arm_id = 0
+    if interventions:
+        assert isinstance(interventions, list), interventions
 
     for subset in all_subsets:
         for values in product(*[M.D[variable] for variable in subset]):
             arm_setting[arm_id] = dict(zip(subset, values))
             if interventions:
-                result = M.new_query(
-                    outcome=(reward_variable,), interventions=interventions.append(arm_setting[arm_id])
-                )
-                # Remove this intervention from the list of interventions to maintain order
-                del interventions[-1]
+                result = M.new_query(outcome=(reward_variable,), interventions=interventions + [arm_setting[arm_id]])
             else:
                 result = M.query(outcome=(reward_variable,), intervention=arm_setting[arm_id])
             expectation = sum(y_val * result[(y_val,)] for y_val in M.D[reward_variable])

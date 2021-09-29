@@ -9,6 +9,7 @@ from typing import Dict, Iterable, Optional, Set, Sequence, AbstractSet
 from typing import FrozenSet, Tuple
 
 from npsem.utils import fzset_union, sortup, sortup2, with_default
+from src.utils.my_utils import remove_duplicate_dicts, remove_exo
 
 
 def default_P_U(mu: Dict):
@@ -481,6 +482,9 @@ class StructuralCausalModel:
             print(f"ORDER: {V_ordered}")
         normalizer = 0
 
+        #  XXX: my addition to be able to use same function
+        F = self.F.static()
+
         # Multivariate domain found on the fly
         for u in product(*[D[U_i] for U_i in U]):  # d^|U|
             assigned = dict(zip(U, u))
@@ -492,7 +496,7 @@ class StructuralCausalModel:
                 if V_i in intervention:
                     assigned[V_i] = intervention[V_i]
                 else:
-                    assigned[V_i] = self.F[V_i](assigned)
+                    assigned[V_i] = F[V_i](assigned)
 
             if not all(assigned[V_i] == condition[V_i] for V_i in condition):
                 continue
@@ -522,9 +526,9 @@ class StructuralCausalModel:
         U = list(sorted(self.G.U | self.more_U))
         D = self.D
         P_U = self.P_U
-        V_ordered = self.G.causal_order()
-        if verbose:
-            print(f"ORDER: {V_ordered}")
+        self.V_ordered = self.G.causal_order()
+        if verbose is True:
+            print(f"ORDER: {self.V_ordered}")
 
         T = len(interventions)
         assign_store = {t: [] for t in range(T)}
@@ -549,14 +553,15 @@ class StructuralCausalModel:
 
                     if T > 1:
                         #  Only passing forward manipulative and reward variables, no exogenous
-                        # TODO: make this into a function
-                        assign_store[t].append(dict((k, assigned[k]) for k in V_ordered if k in assigned))
+                        assign_store[t].append(remove_exo(self.V_ordered, assigned))
+
             else:
-                # normalizer = 0
-                # prob_outcome = defaultdict(lambda: 0)
-                # TODO: make this into a function (removes duplicates dicts from list)
-                for past_assigned in [dict(t) for t in {tuple(d.items()) for d in assign_store[t - 1]}]:
-                    F = self.F.dynamic(past_assigned)  #  This is the dynamic part function with params from the past
+                normalizer = 0
+                past_assignees = remove_duplicate_dicts(assign_store[t - 1])
+                prob_outcome = {i: defaultdict(lambda: 0) for i in range(len(past_assignees))}
+                for i, past_assigned in enumerate(past_assignees):
+                    print(past_assigned)
+                    F = self.F.dynamic(past_assigned)
                     for u in product(*[D[U_i] for U_i in U]):
 
                         assigned = dict(zip(U, u))
@@ -565,12 +570,16 @@ class StructuralCausalModel:
                         if not all(assigned[V_i] == condition[V_i] for V_i in condition):
                             continue
                         normalizer += p_u
-                        prob_outcome[tuple(assigned[V_i] for V_i in outcome)] += p_u
+                        prob_outcome[i][tuple(assigned[V_i] for V_i in outcome)] += p_u
 
                         if T - 1 != t:
                             #  Only passing forward manipulative and reward variables, no exogenous
-                            # TODO: make this into a function
-                            assign_store[t].append(dict((k, assigned[k]) for k in V_ordered if k in assigned))
+                            assign_store[t].append(remove_exo(self.V_ordered, assigned))
+
+                    print(prob_outcome[i])
+
+                print(t, intervention, prob_outcome)
+
         if prob_outcome:
             # normalize by prob condition
             return defaultdict(lambda: 0, {k: v / normalizer for k, v in prob_outcome.items()})
