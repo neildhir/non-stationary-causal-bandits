@@ -516,12 +516,10 @@ class StructuralCausalModel:
         if condition is None:
             condition = dict()
         new_condition = tuple(sorted([(x, y) for x, y in condition.items()]))
-
         return self.query01(outcome=outcome, condition=new_condition, interventions=interventions, verbose=verbose)
 
     def query01(self, outcome: Tuple, condition: Tuple, interventions: list, verbose=False) -> defaultdict:
         """Finds expectation after a sequence of interventions."""
-
         condition = dict(condition)
         U = list(sorted(self.G.U | self.more_U))
         D = self.D
@@ -541,6 +539,7 @@ class StructuralCausalModel:
                 normalizer = 0
                 prob_outcome = defaultdict(lambda: 0)
                 F = self.F.static()
+
                 for u in product(*[D[U_i] for U_i in U]):  # d^|U|
 
                     assigned = dict(zip(U, u))
@@ -557,10 +556,13 @@ class StructuralCausalModel:
 
             else:
                 # normalizer = 0
-                # prob_outcome = defaultdict(lambda: 0)
                 past_assignees = remove_duplicate_dicts(assign_store[t - 1])
                 for past_assigned in past_assignees:
+                    # TODO: not clear if should set to zero here
+                    # normalizer = 0
+                    # prob_outcome = defaultdict(lambda: 0)
                     F = self.F.dynamic(past_assigned)
+
                     for u in product(*[D[U_i] for U_i in U]):
 
                         assigned = dict(zip(U, u))
@@ -574,8 +576,6 @@ class StructuralCausalModel:
                         if T - 1 != t:
                             # Only passing forward manipulative and reward variables, no exogenous
                             assign_store[t].append(remove_exo(self.V_ordered, assigned))
-
-                # print(t, intervention, prob_outcome)
 
         if prob_outcome:
             # normalize by prob condition

@@ -38,7 +38,7 @@ def compute_optimality(arm_played, mu):
     return np.vectorize(lambda x: int(mu[x] == mu_star))(arm_played)
 
 
-def compute_cumulative_regret(rewards: np.ndarray, mu_star: float, remove_negative_cr: bool) -> np.ndarray:
+def compute_cumulative_regret(rewards: np.ndarray, mu_star: float, remove_negative_cr: bool = False) -> np.ndarray:
     cumulative_rewards = np.cumsum(rewards, axis=1)
     optimal_cumulative_rewards = np.cumsum(np.ones(rewards.shape) * mu_star, axis=1)
     # Cumulative regret

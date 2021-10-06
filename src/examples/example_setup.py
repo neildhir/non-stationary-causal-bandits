@@ -1,9 +1,9 @@
 from npsem.utils import rand_bw, seeded
-from src.examples.SEMs import DynamicIVCD
+from src.examples.SEMs import testSEM
 from ..utils.dag_utils.graph_functions import make_graphical_model, make_networkx_object
 
 
-def setup_DynamicIVCD():
+def setup_DynamicIVCD(T=3):
 
     with seeded(seed=0):
         mu1 = {
@@ -25,8 +25,6 @@ def setup_DynamicIVCD():
 
         # Constructor for adding unobserved confounders to graphical model
         confounders = {0: ("X", "Y"), 1: ("X", "Y"), 2: ("X", "Y")}
-
-        T = 3
 
         assert len(confounders) == 3
 
@@ -54,7 +52,7 @@ def setup_DynamicIVCD():
 
         return {
             "G": G,
-            "SEM": DynamicIVCD,
+            "SEM": testSEM,
             "mu1": mu1,
             "node_info": node_info,
             "confounder_info": confounders,
