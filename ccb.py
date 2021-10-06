@@ -118,7 +118,6 @@ class CCB:
             )
 
             #  Convert time-slice SCM to bandit machine
-            # mu, arm_setting = SCM_to_bandit_machine(self.SCMs[temporal_index], target_variable=target_var_only)
             mu, arm_setting = new_SCM_to_bandit_machine(
                 self.SCMs[temporal_index], interventions=self.interventions, reward_variable=target_var_only
             )

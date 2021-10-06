@@ -2,13 +2,21 @@ from pandas import DataFrame
 import seaborn as sns
 import matplotlib.pyplot as plt
 from typing import List
+import numpy as np
+from npsem.utils import with_default
 
-tex_fonts = {
-    # Use LaTeX to write all text
-    "text.usetex": True,
-    "text.latex.preamble": r"\usepackage{amsfonts}",
-}
-plt.rcParams.update(tex_fonts)
+from npsem.viz_util import sparse_index
+
+
+def plot_setup():
+    tex_fonts = {
+        # Use LaTeX to write all text
+        "text.usetex": True,
+        "text.latex.preamble": r"\usepackage{amsfonts}",
+    }
+    plt.rcParams.update(tex_fonts)
+    sns.set_theme(style="ticks")
+    sns.set_context("talk", font_scale=1.2)
 
 
 def set_size(width, fraction=1):
@@ -65,9 +73,9 @@ def plot_all_barplots(rewards: List[list], save: bool = False):
 
     assert all(len(rewards[0]) == len(rewards[t]) for t in range(1, len(rewards)))
     arms = range(1, len(rewards[0]) + 1)
-    sns.set_theme(style="ticks")
-    sns.set_context("talk", font_scale=1.2)
     width = 345
+
+    plot_setup()
 
     palettes = [{"gray"}, {"gray", "blue"}, {"gray", "red"}]
 
@@ -87,7 +95,6 @@ def plot_all_barplots(rewards: List[list], save: bool = False):
         fig, ax = plt.subplots(1, 1, figsize=set_size(width))
         sns.barplot(x="Pomis", y="Value", hue="Model", data=tidy, ax=ax, palette=palettes[t])
         sns.despine()
-        plt.rcParams.update(tex_fonts)
 
         # Axis labels
         plt.ylim(0, 1.0)
@@ -105,10 +112,52 @@ def plot_all_barplots(rewards: List[list], save: bool = False):
         plt.show()
 
 
+def get_reward_data(rewards, pomis_ids):
+    total_len = len(rewards)
+    R = np.array([np.array(reward)[pomis_ids] for reward in rewards.values()]).reshape(-1, 1)
+    T = np.repeat(range(total_len), len(pomis_ids))
+    IDs = np.tile(pomis_ids, total_len)
+    assert len(R) == len(T) == len(IDs)
+    return DataFrame({"Trial": T, "Pomis": IDs, "Reward": np.squeeze(R)})
+
+
+def superimposed_rewards_plot(rewards: dict, pomis_ids=range(1, 5), save=False):
+    plot_setup()
+    width = 345
+    df = get_reward_data(rewards, pomis_ids)
+
+    fig, ax = plt.subplots(1, 1, figsize=set_size(width))
+    sns.barplot(x="Pomis", y="Reward", hue="Trial", palette="deep", data=df, ax=ax)
+    sns.despine()
+
+    # Axis labels
+    plt.ylim(0, 1.0)
+    # plt.ylabel(r"Reward")
+    plt.ylabel(r"$\mathbb{{E}}\left[Y_i \mid \mathrm{{do}}(a)\right]$")
+    plt.xlabel(r"POMIS Arm ID $[a]$")
+    # Legend stuff
+    plt.legend(
+        ncol=2,
+        prop={"size": 13},
+        title=r"$i$",
+        title_fontsize=20,
+        loc="upper left",
+        framealpha=0.0,
+        bbox_to_anchor=(0.0, 1.175),
+    )
+
+    if save:
+        fig.savefig(
+            "../figures/superimposed_rewards_barplot.pdf", bbox_inches="tight",
+        )
+
+    plt.show()
+
+
 def plot_CR(out, filename=None):
-    plt.rcParams.update(tex_fonts)
-    sns.set_theme(style="ticks")
-    sns.set_context("talk", font_scale=1.2)
+
+    plot_setup()
+
     width = 500
     fig, ax = plt.subplots(1, 1, figsize=set_size(width))
     for (pi, c) in zip(["TS", "UCB"], ["red", "b"]):
@@ -120,6 +169,35 @@ def plot_CR(out, filename=None):
     plt.legend(ncol=2, prop={"size": 15}, loc="upper center", framealpha=0.0, bbox_to_anchor=(0.5, 1.0))
     plt.ylabel(r"$R_{N_1}$")
     plt.xlabel(r"Round $[n / N_1]$")
+
+    if filename:
+        fig.savefig(
+            "../figures/CR_{}.pdf".format(filename), bbox_inches="tight",
+        )
+
+    plt.show()
+
+
+def plot_probability(model, i_lower, i_upper, cut_time=5000, filename=None):
+
+    plot_setup()
+    width = 500
+
+    assert i_upper > i_lower, (i_lower, i_upper)
+
+    fig, ax = plt.subplots(1, 1, figsize=set_size(width))
+    for i in range(i_lower, i_upper):
+        arm_optimality_results = np.mean(model.results[i]["arm_optimality"], axis=0)
+        arm_freq = arm_optimality_results
+        time_points = sparse_index(with_default(cut_time, len(arm_freq)), 1000)
+        ax.plot(time_points, arm_freq[time_points], lw=2, alpha=0.5, label=r"$i={}$".format(i))
+
+    sns.despine(trim=True)
+    # Axis labels
+    plt.ylim(0, 1.1)
+    plt.ylabel(r"Probability")
+    plt.xlabel(r"Round $[n / N_i]$")
+    plt.legend(ncol=2, prop={"size": 20}, loc="lower right", framealpha=0.0)
 
     if filename:
         fig.savefig(

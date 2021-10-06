@@ -1,6 +1,7 @@
 from npsem.utils import rand_bw, seeded
 from src.examples.SEMs import testSEM
 from ..utils.dag_utils.graph_functions import make_graphical_model, make_networkx_object
+from multiprocessing import cpu_count
 
 
 def setup_DynamicIVCD(T=3):
@@ -57,7 +58,7 @@ def setup_DynamicIVCD(T=3):
             "node_info": node_info,
             "confounder_info": confounders,
             "base_target_variable": "Y",
-            "horizon": 1000,
-            "n_trials": 1,
-            "n_jobs": 4,
+            "horizon": 5000,
+            "n_trials": 100,
+            "n_jobs": 3 * cpu_count() // 4,
         }
