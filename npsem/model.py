@@ -556,8 +556,8 @@ class StructuralCausalModel:
                         assign_store[t].append(remove_exo(self.V_ordered, assigned))
 
             else:
-                normalizer = 0
-                prob_outcome = defaultdict(lambda: 0)
+                # normalizer = 0
+                # prob_outcome = defaultdict(lambda: 0)
                 past_assignees = remove_duplicate_dicts(assign_store[t - 1])
                 for past_assigned in past_assignees:
                     F = self.F.dynamic(past_assigned)
@@ -575,7 +575,7 @@ class StructuralCausalModel:
                             # Only passing forward manipulative and reward variables, no exogenous
                             assign_store[t].append(remove_exo(self.V_ordered, assigned))
 
-                print(t, intervention, prob_outcome)
+                # print(t, intervention, prob_outcome)
 
         if prob_outcome:
             # normalize by prob condition
