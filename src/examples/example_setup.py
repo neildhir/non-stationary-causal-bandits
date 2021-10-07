@@ -24,10 +24,8 @@ def setup_DynamicIVCD(T=3):
             "Y": {"type": "manipulative", "domain": (0, 1)},
         }
 
-        # Constructor for adding unobserved confounders to graphical model
-        confounders = {0: ("X", "Y"), 1: ("X", "Y"), 2: ("X", "Y")}
-
-        assert len(confounders) == 3
+        # Constructor for adding [the same] unobserved confounders to graphical model
+        confounders = {t: ("X", "Y") for t in range(T)}
 
         graph_view = make_graphical_model(
             start_time=0,

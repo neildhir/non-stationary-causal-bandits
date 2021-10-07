@@ -189,8 +189,8 @@ def plot_probability(model, i_lower, i_upper, cut_time=5000, filename=None):
     for i in range(i_lower, i_upper):
         arm_optimality_results = np.mean(model.results[i]["arm_optimality"], axis=0)
         arm_freq = arm_optimality_results
-        time_points = sparse_index(with_default(cut_time, len(arm_freq)), 1000)
-        ax.plot(time_points, arm_freq[time_points], lw=2, alpha=0.5, label=r"$i={}$".format(i))
+        time_points = sparse_index(with_default(cut_time, len(arm_freq)), 500)
+        ax.plot(time_points, arm_freq[time_points], lw=2, alpha=0.8, label=r"$i={}$".format(i))
 
     sns.despine(trim=True)
     # Axis labels
@@ -201,7 +201,7 @@ def plot_probability(model, i_lower, i_upper, cut_time=5000, filename=None):
 
     if filename:
         fig.savefig(
-            "../figures/CR_{}.pdf".format(filename), bbox_inches="tight",
+            "../figures/probability_i_{}_{}_{}.pdf".format(i_lower, i_upper, filename), bbox_inches="tight",
         )
 
     plt.show()
