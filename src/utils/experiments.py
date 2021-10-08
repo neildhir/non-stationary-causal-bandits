@@ -7,7 +7,7 @@ from npsem.utils import subseq
 
 def main_experiment_ccb(M: StructuralCausalModel, Y, past_interventions=None, num_trial=200, horizon=10000, n_jobs=1):
     results = dict()
-    mu, arm_setting = new_SCM_to_bandit_machine(scm, interventions=past_interventions, reward_variable=target_var_only)
+    mu, arm_setting = new_SCM_to_bandit_machine(M, interventions=past_interventions, reward_variable=Y)
     arm_strategy = "POMIS"
     arm_selected = arms_of(arm_strategy, arm_setting, M.G, Y)
     arm_corrector = vectorize(lambda x: arm_selected[x])

@@ -121,17 +121,23 @@ def get_reward_data(rewards, pomis_ids):
     return DataFrame({"Trial": T, "Pomis": IDs, "Reward": np.squeeze(R)})
 
 
-def superimposed_rewards_plot(rewards: dict, pomis_ids=range(1, 5), save=False):
+def superimposed_rewards_plot(rewards: dict, i_max=None, ymin=0.0, ymax=1.0, pomis_ids=range(1, 5), save=False):
     plot_setup()
     width = 345
-    df = get_reward_data(rewards, pomis_ids)
+
+    if i_max:
+        for key in range(i_max, len(rewards)):
+            rewards.pop(key)
+        df = get_reward_data(rewards, pomis_ids)
+    else:
+        df = get_reward_data(rewards, pomis_ids)
 
     fig, ax = plt.subplots(1, 1, figsize=set_size(width))
     sns.barplot(x="Pomis", y="Reward", hue="Trial", palette="deep", data=df, ax=ax)
     sns.despine()
 
     # Axis labels
-    plt.ylim(0, 1.0)
+    plt.ylim(ymin, ymax)
     # plt.ylabel(r"Reward")
     plt.ylabel(r"$\mathbb{{E}}\left[Y_i \mid \mathrm{{do}}(a)\right]$")
     plt.xlabel(r"POMIS Arm ID $[a]$")
@@ -143,7 +149,7 @@ def superimposed_rewards_plot(rewards: dict, pomis_ids=range(1, 5), save=False):
         title_fontsize=20,
         loc="upper left",
         framealpha=0.0,
-        bbox_to_anchor=(0.0, 1.175),
+        bbox_to_anchor=(0.0, 1.13),
     )
 
     if save:
@@ -178,7 +184,7 @@ def plot_CR(out, filename=None):
     plt.show()
 
 
-def plot_probability(model, i_lower, i_upper, cut_time=5000, filename=None):
+def plot_probability(model, i_lower, i_upper, cut_time=5000, base_size=500, filename=None):
 
     plot_setup()
     width = 500
@@ -189,15 +195,23 @@ def plot_probability(model, i_lower, i_upper, cut_time=5000, filename=None):
     for i in range(i_lower, i_upper):
         arm_optimality_results = np.mean(model.results[i]["arm_optimality"], axis=0)
         arm_freq = arm_optimality_results
-        time_points = sparse_index(with_default(cut_time, len(arm_freq)), 500)
-        ax.plot(time_points, arm_freq[time_points], lw=2, alpha=0.8, label=r"$i={}$".format(i))
+        time_points = sparse_index(with_default(cut_time, len(arm_freq)), base_size)
+        ax.plot(time_points, arm_freq[time_points], lw=2, alpha=1.0, label=r"${}$".format(i))
 
     sns.despine(trim=True)
     # Axis labels
     plt.ylim(0, 1.1)
     plt.ylabel(r"Probability")
     plt.xlabel(r"Round $[n / N_i]$")
-    plt.legend(ncol=2, prop={"size": 20}, loc="lower right", framealpha=0.0)
+    plt.legend(
+        ncol=3,
+        prop={"size": 20},
+        loc="center",
+        framealpha=0.0,
+        title=r"$i$",
+        title_fontsize=20,
+        bbox_to_anchor=(0.6, 0.55),
+    )
 
     if filename:
         fig.savefig(
