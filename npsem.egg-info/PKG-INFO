@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: npsem
+Version: 0.1.0
+Author: Sanghack Lee
+Author-email: sanghack.lee@gmail.com
+Requires: numpy
+Requires: scipy
+Requires: joblib
+Requires: matplotlib
+Requires: seaborn
+Requires: networkx
