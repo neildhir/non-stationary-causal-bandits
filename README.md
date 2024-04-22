@@ -4,9 +4,17 @@ This paper studies an instance of the multi-armed bandit (MAB) problem, specific
 
 Visual representation of model and method.
 
-![CCB](./figures/Screenshot%202024-04-22%20at%2010.24.25.png)
+![CCB](./figures/ccb_illustration.png)
+
+## TL;DR
+
+1. [DCBO](https://github.com/neildhir/DCBO/tree/master) takes continuous actions (interventions) in a dynamical system modelled as a dynamic causal diagram.
+2. CCB (this paper) takes discrete actions (interventions) in a dynamical system modelled as a dynamic causal diagram.
 
 ## Installation
+
+1. Go to the [SCM-MAB code repo](https://github.com/sanghack81/SCMMAB-NIPS2018) and install that package first.
+2. Clone this repo and install this package using
 
 ```python
 pip install .

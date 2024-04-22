@@ -13,13 +13,14 @@ from tqdm import trange
 
 from npsem.bandits import play_bandits
 from npsem.model import StructuralCausalModel, default_P_U
-from npsem.scm_bandits import SCM_to_bandit_machine, arm_types, arms_of, new_SCM_to_bandit_machine
+from npsem.scm_bandits import arm_types, arms_of, new_SCM_to_bandit_machine
 from npsem.utils import subseq
+from src.utils.ns_scm_bandits import new_SCM_to_bandit_machine
 from src.examples.example_setup import setup_DynamicIVCD
 from src.utils.dag_utils.graph_functions import get_time_slice_sub_graphs, make_time_slice_causal_diagrams
 from src.utils.postprocess import implement_intervention, get_results
 from src.utils.transitions import fit_transition_functions, get_transition_pairs
-from utils.emissions import fit_emission_functions, get_emission_pairs
+from src.utils.emissions import fit_emission_functions, get_emission_pairs
 
 
 class CCB:

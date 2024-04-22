@@ -1,12 +1,11 @@
 from copy import deepcopy
-from networkx.algorithms.operators.product import _init_product_graph
 from networkx.classes.multidigraph import MultiDiGraph
 from itertools import combinations
 
 from numpy.core.shape_base import hstack
-from utils.forecast import make_conditional_bernoulli
 
-from utils.transitions import fit_trans_mat
+from src.utils.transitions import fit_trans_mat
+from src.utils.forecast import make_conditional_bernoulli
 
 
 def get_emission_pairs(dag: MultiDiGraph) -> dict:
