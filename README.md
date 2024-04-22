@@ -28,6 +28,19 @@ This work is published in [this paper](https://arxiv.org/pdf/2112.01819.pdf).
 
 This implementation builds heavily upon the original [SCM-MAB code](https://github.com/sanghack81/SCMMAB-NIPS2018).
 
+## Usage
+
+A comprehensive example can be found in `examples/ccb_demo.ipynb` or if you really want to hit the ground running, you can use the following code snippet:
+
+```python
+from src.examples.example_setup import setup_DynamicIVCD
+from src.ccb import CCB
+
+params = setup_DynamicIVCD()
+m = CCB(**params)
+m.run()
+```
+
 ## Cite
 
 If you use this code in your research, please consider citing:
