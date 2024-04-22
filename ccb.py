@@ -63,7 +63,7 @@ class CCB:
             self.emission_pairs = get_emission_pairs(G)
             self.transition_functions = fit_transition_functions(observational_samples, self.transfer_pairs)
             self.emission_functions = fit_emission_functions(observational_samples, self.emission_pairs)
-            # TODO: need a sem_hat function to put it all together
+            # TODO: write sem_hat function to put it all together
             #  XXX: we can write two version of the estimation, one which uses samples from the whole graph or another which uses only the measured variables (and so does not have any idea about the background model or the confounders). This labours under two different assumptions:
             # 1. We can measure the background variables (but if we can do that, then they are not really background variables)
             # 2. We cannot measure them in which case we can only model the interaction on the manipulative and non-manipulative variables.
