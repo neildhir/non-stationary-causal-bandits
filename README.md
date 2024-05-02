@@ -1,4 +1,4 @@
-# Non-stationary (actually piecewise stationary) SCM-MAB i.e.  chronological causal bandit
+# Non-stationary SCM-MAB i.e.  chronological causal bandit
 
 This paper studies an instance of the multi-armed bandit (MAB) problem, specifically where several causal MABs operate chronologically in the same dynamical system. Practically the reward distribution of each bandit is governed by the same non-trivial dependence structure, which is a dynamic causal model. Dynamic because we allow for each causal MAB to depend on the preceding MAB and in doing so are able to transfer information between agents. Our contribution, the Chronological Causal Bandit (CCB), is useful in discrete decision-making settings where the causal effects are changing across time and can be informed by earlier interventions in the same system. In this paper, we present some early findings of the CCB as demonstrated on a toy problem.
 
@@ -12,8 +12,6 @@ Visual representation of model and method.
 2. CCB (this paper) takes discrete actions (interventions) in a dynamical system modelled as a dynamic causal diagram.
 
 ## Installation
-
-This package builds extensively upon [SCM-MAB code repo](https://github.com/sanghack81/SCMMAB-NIPS2018). It has been incorporated as a submodule in this repo. So you do _not_ have to install it separately.
 
 To instal this package; clone this repo and install using
 
