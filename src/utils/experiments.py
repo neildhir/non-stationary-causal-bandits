@@ -1,8 +1,8 @@
 from numpy import vectorize
-from npsem.bandits import play_bandits
-from npsem.model import StructuralCausalModel
-from npsem.scm_bandits import arms_of, new_SCM_to_bandit_machine
-from npsem.utils import subseq
+from scm_mab.bandits import play_bandits
+from scm_mab.model import StructuralCausalModel
+from scm_mab.scm_bandits import arms_of, new_SCM_to_bandit_machine
+from scm_mab.utils import subseq
 
 
 def main_experiment_ccb(M: StructuralCausalModel, Y, past_interventions=None, num_trial=200, horizon=10000, n_jobs=1):

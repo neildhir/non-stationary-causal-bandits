@@ -1,5 +1,5 @@
 from typing import OrderedDict
-from npsem.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret, compute_optimality
+from scm_mab.NIPS2018POMIS_exp.test_bandit_strategies import compute_cumulative_regret, compute_optimality
 import numpy as np
 from scipy.stats import bernoulli
 

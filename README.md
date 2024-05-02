@@ -13,16 +13,27 @@ Visual representation of model and method.
 
 ## Installation
 
-1. Go to the [SCM-MAB code repo](https://github.com/sanghack81/SCMMAB-NIPS2018) and install that package first (make sure to run `pip install .` from that base directory).
-2. Clone this repo and install this package using
+This package builds extensively upon [SCM-MAB code repo](https://github.com/sanghack81/SCMMAB-NIPS2018). It has been incorporated as a submodule in this repo. So you do _not_ have to install it separately.
+
+To instal this package; clone this repo and install using
 
 ```python
 pip install -e .
 ```
 
+If you are having trouble with `graphviz` using a MacOS M1 machine, you may need to install it using the instructions found [here](https://github.com/pygraphviz/pygraphviz/issues/398):
+
+```python
+python3 -m pip install \
+                --config-settings="--global-option=build_ext" \
+                --config-settings="--global-option=-I$(brew --prefix graphviz)/include/" \
+                --config-settings="--global-option=-L$(brew --prefix graphviz)/lib/" \
+                pygraphviz
+```
+
 ## Paper
 
-This work is published in [this paper](https://arxiv.org/pdf/2112.01819.pdf).
+This work was published in [this paper](https://arxiv.org/pdf/2112.01819.pdf).
 
 ## Implementation
 
@@ -30,7 +41,7 @@ This implementation builds heavily upon the original [SCM-MAB code](https://gith
 
 ## Usage
 
-A comprehensive example can be found in `examples/ccb_demo.ipynb` or if you really want to hit the ground running, you can use the following code snippet:
+A comprehensive example can be found in `notebooks/demo.ipynb` or if you really want to hit the ground running, you can use the following code snippet:
 
 ```python
 from src.examples.example_setup import setup_DynamicIVCD

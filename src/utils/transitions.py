@@ -61,4 +61,3 @@ def fit_transition_functions(observational_samples, transfer_pairs: dict) -> dic
         transition_functions[input_vars] = make_conditional_bernoulli(trans_mat)
 
     return transition_functions
-

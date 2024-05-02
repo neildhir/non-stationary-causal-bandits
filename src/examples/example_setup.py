@@ -1,7 +1,7 @@
-from npsem.utils import rand_bw, seeded
-from src.utils.dag_utils.graph_functions import make_graphical_model, make_networkx_object
+from scm_mab.utils import rand_bw, seeded
 from src.examples.SEMs import testSEM
 from multiprocessing import cpu_count
+from src.utils.dag_utils.graph_functions import make_graphical_model, make_networkx_object
 
 
 def setup_DynamicIVCD(T=3):

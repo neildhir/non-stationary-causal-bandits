@@ -13,6 +13,7 @@ assert sys.version_info >= (3,), "This package requires Python 3."
 
 requirements = [
     "graphviz",
+    "joblib",
     "matplotlib",
     "networkx",
     "numpy",

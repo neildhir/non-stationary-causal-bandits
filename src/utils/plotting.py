@@ -3,9 +3,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from typing import List
 import numpy as np
-from npsem.utils import with_default
+from scm_mab.utils import with_default
 
-from npsem.viz_util import sparse_index
+from scm_mab.viz_util import sparse_index
 
 
 def plot_setup():
@@ -42,7 +42,7 @@ def set_size(width, fraction=1):
 
     # Golden ratio to set aesthetic figure height
     # https://disq.us/p/2940ij3
-    golden_ratio = (5 ** 0.5 - 1) / 2
+    golden_ratio = (5**0.5 - 1) / 2
 
     # Figure width in inches
     fig_width_in = fig_width_pt * inches_per_pt
@@ -106,7 +106,8 @@ def plot_all_barplots(rewards: List[list], save: bool = False):
 
         if save:
             fig.savefig(
-                "../figures/barplot_t_{}.pdf".format(t), bbox_inches="tight",
+                "../figures/barplot_t_{}.pdf".format(t),
+                bbox_inches="tight",
             )
 
         plt.show()
@@ -154,7 +155,8 @@ def superimposed_rewards_plot(rewards: dict, i_max=None, ymin=0.0, ymax=1.0, pom
 
     if save:
         fig.savefig(
-            "../figures/superimposed_rewards_barplot.pdf", bbox_inches="tight",
+            "../figures/superimposed_rewards_barplot.pdf",
+            bbox_inches="tight",
         )
 
     plt.show()
@@ -166,7 +168,7 @@ def plot_CR(out, filename=None):
 
     width = 500
     fig, ax = plt.subplots(1, 1, figsize=set_size(width))
-    for (pi, c) in zip(["TS", "UCB"], ["red", "b"]):
+    for pi, c in zip(["TS", "UCB"], ["red", "b"]):
         time_points, mean_x, lower, upper = out[pi]
         ax.plot(time_points, mean_x[time_points], c, lw=3, label=pi, ls="--" if pi == "TS" else "-")
         ax.fill_between(time_points, lower[time_points], upper[time_points], color=c, alpha=0.1, lw=2)
@@ -178,7 +180,8 @@ def plot_CR(out, filename=None):
 
     if filename:
         fig.savefig(
-            "../figures/CR_{}.pdf".format(filename), bbox_inches="tight",
+            "../figures/CR_{}.pdf".format(filename),
+            bbox_inches="tight",
         )
 
     plt.show()
@@ -215,7 +218,8 @@ def plot_probability(model, i_lower, i_upper, cut_time=5000, base_size=500, file
 
     if filename:
         fig.savefig(
-            "../figures/probability_i_{}_{}_{}.pdf".format(i_lower, i_upper, filename), bbox_inches="tight",
+            "../figures/probability_i_{}_{}_{}.pdf".format(i_lower, i_upper, filename),
+            bbox_inches="tight",
         )
 
     plt.show()

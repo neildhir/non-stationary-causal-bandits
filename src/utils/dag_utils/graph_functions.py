@@ -4,7 +4,7 @@ from numpy import repeat
 from itertools import cycle, chain
 from networkx import nx_agraph, set_node_attributes
 import pygraphviz
-from npsem.model import CausalDiagram
+from scm_mab.model import CausalDiagram
 from typing import Union
 
 
@@ -17,7 +17,6 @@ def make_graphical_model(
     confounder_info: None,
     verbose=False,
 ):
-
     """
     Generic temporal Bayesian network with two types of connections.
 

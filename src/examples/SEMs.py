@@ -68,13 +68,17 @@ class DynamicIVCD:
                 # f_Z(z_{t-1}) [the 'clamped' part if it exists, where f_Z is the transition function] --> Z <-- U_Z
                 "Z": lambda v: v["U_Z"] if clamped["Z"] is None else v["U_Z"] ^ clamped["Z"],
                 # f_X(x_{t-1}) --> X <-- {U_X, U_XY, Z}
-                "X": lambda v: v["U_X"] ^ v["U_XY"] ^ v["Z"]
-                if clamped["X"] is None
-                else v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"],
+                "X": lambda v: (
+                    v["U_X"] ^ v["U_XY"] ^ v["Z"]
+                    if clamped["X"] is None
+                    else v["U_X"] ^ v["U_XY"] ^ v["Z"] ^ clamped["X"]
+                ),
                 # f_Y(y_{t-1}) --> Y <-- {U_Y, U_XY, X}
-                "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"]
-                if clamped["Y"] is None
-                else 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ clamped["Y"],
+                "Y": lambda v: (
+                    1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"]
+                    if clamped["Y"] is None
+                    else 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] ^ clamped["Y"]
+                ),
                 #
             }
         )
@@ -134,4 +138,3 @@ class testSEM:
                 "Y": lambda v: 1 ^ v["U_Y"] ^ v["U_XY"] ^ v["X"] & past["Y"],
             }
         )
-
